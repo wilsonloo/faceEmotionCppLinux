@@ -8,12 +8,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <fstream>
+
+#include "common.h"
+#include "nlohmann/json.hpp"
+
+#include "faceEngine.h"
 
 using namespace std;
-
-// 根据不同平台制定appid和sdkkey
-#define APPID "6e3ZXZijjAS4LEME8FAQ5t6RNYYfHS6V1kHA2EavGkUn"
-#define SDKKEY "EkWxhjU8ZtyCEQHwvNpS6jCVA3mHFMMpdYjqd3mjV9vD"
 
 #define NSCALE 16 
 #define FACENUM	5
@@ -21,14 +23,6 @@ using namespace std;
 #define SafeFree(p) { if ((p)) free(p); (p) = NULL; }
 #define SafeArrayDelete(p) { if ((p)) delete [] (p); (p) = NULL; } 
 #define SafeDelete(p) { if ((p)) delete (p); (p) = NULL; } 
-
-//时间戳转换为日期格式
-void timestampToTime(char* timeStamp, char* dateTime, int dateTimeSize)
-{
-	time_t tTimeStamp = atoll(timeStamp);
-	struct tm* pTm = gmtime(&tTimeStamp);
-	strftime(dateTime, dateTimeSize, "%Y-%m-%d %H:%M:%S", pTm);
-}
 
 //图像颜色格式转换
 int ColorSpaceConversion(MInt32 width, MInt32 height, MInt32 format, MUInt8* imgData, ASVLOFFSCREEN& offscreen)
@@ -73,51 +67,22 @@ int ColorSpaceConversion(MInt32 width, MInt32 height, MInt32 format, MUInt8* img
 	return 1;
 }
 
+nlohmann::json g_setting;
 
 int main()
 {
-	printf("\n************* ArcFace SDK Info *****************\n");
-	MRESULT res = MOK;
-	ASF_ActiveFileInfo activeFileInfo = { 0 };
-	res = ASFGetActiveFileInfo(&activeFileInfo);
-	if (res != MOK)
-	{
-		printf("ASFGetActiveFileInfo fail: %d\n", res);
-	}
-	else
-	{
-		//这里仅获取了有效期时间，还需要其他信息直接打印即可
-		char startDateTime[32];
-		timestampToTime(activeFileInfo.startTime, startDateTime, 32);
-		printf("startTime: %s\n", startDateTime);
-		char endDateTime[32];
-		timestampToTime(activeFileInfo.endTime, endDateTime, 32);
-		printf("endTime: %s\n", endDateTime);
-	}
+    std::ifstream fin("setting.json");
+    fin >> g_setting;
+    fin.close();
 
-	//SDK版本信息
-	const ASF_VERSION version = ASFGetVersion();
-	printf("\nVersion:%s\n", version.Version);
-	printf("BuildDate:%s\n", version.BuildDate);
-	printf("CopyRight:%s\n", version.CopyRight);
+    FaceEngine faceEngine;
+    faceEngine.Init();
+    faceEngine.DumpSDKInfos();
 
-	printf("\n************* Face Recognition *****************\n");
-	
-	res = ASFOnlineActivation(APPID, SDKKEY);
-	if (MOK != res && MERR_ASF_ALREADY_ACTIVATED != res)
-		printf("ASFOnlineActivation fail: %d\n", res);
-	else
-		printf("ASFOnlineActivation sucess: %d\n", res);
+    std::string appId(g_setting["app_id"]);
+    std::string sdkKey(g_setting["sdk_key"]);
+    faceEngine.DumpActivationInfos(const_cast<char*>(appId.c_str()), const_cast<char*>(sdkKey.c_str()), NULL);
 
-	//初始化引擎
-	MHandle handle = NULL;
-	MInt32 mask = ASF_FACE_DETECT | ASF_FACERECOGNITION | ASF_AGE | ASF_GENDER | ASF_FACE3DANGLE | ASF_LIVENESS | ASF_IR_LIVENESS;
-	res = ASFInitEngine(ASF_DETECT_MODE_IMAGE, ASF_OP_0_ONLY, NSCALE, FACENUM, mask, &handle);
-	if (res != MOK)
-		printf("ASFInitEngine fail: %d\n", res);
-	else
-		printf("ASFInitEngine sucess: %d\n", res);
-	
 	/*********以下三张图片均存在，图片保存在 ./bulid/images/ 文件夹下*********/
 	
 	//可见光图像 NV21格式裸数据
@@ -162,7 +127,8 @@ int main()
 		ASF_FaceFeature feature1 = { 0 };
 		ASF_FaceFeature copyfeature1 = { 0 };
 		
-		res = ASFDetectFacesEx(handle, &offscreen1, &detectedFaces1);;
+        MHandle& handle = faceEngine.GetHandle();
+		MRESULT res = ASFDetectFacesEx(handle, &offscreen1, &detectedFaces1);;
 		if (res != MOK && detectedFaces1.faceNum > 0)
 		{
 			printf("%s ASFDetectFaces 1 fail: %d\n", picPath1, res);
