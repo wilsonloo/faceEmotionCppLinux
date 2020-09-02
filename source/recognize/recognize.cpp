@@ -12,6 +12,7 @@
 #include "asvloffscreen.h"
 #include "merror.h"
 
+#include "common.h"
 #include "utils.h"
 #include "nlohmann/json.hpp"
 
@@ -74,32 +75,6 @@ int ColorSpaceConversion(MInt32 width, MInt32 height, MInt32 format, MUInt8* img
 	return 1;
 }
 
-// 加载所有带注册的图片,并转为nv21格式
-void ConvertRGB2NV21Images(const std::string& rootPath)
-{
-    printf("\nconverting RGB images to NV21 in %s...\n", rootPath.c_str());
-
-    // 获取目录下的所有jpg文件
-    std::list<std::string> imagePathList;
-    const std::string suffix = "png";
-    fem::utils::getFilePathsInDirectory(rootPath, suffix, imagePathList);
-
-    // 对每个jpg进行nv21转码
-    for(const std::string& imagePath : imagePathList){
-        printf("\tconverting RGB image %s\n", imagePath.c_str());
-
-        // 将jpg改为nv21
-        std::string imageName = fem::utils::getFileName(imagePath);
-        std::string nv21Path("./nv21.rec.dir/");  
-        nv21Path.append(imageName.substr(0, imageName.length()-suffix.length()));
-        nv21Path.append("nv21");
-
-        fem::utils::opencvRGB2NV21(imagePath, nv21Path);
-    }
-
-    printf("converting RGB images to NV21...Done\n");
-}
-
 Recognize::~Recognize()
 {
     for(auto iter = m_persons.begin(); iter != m_persons.end(); ++iter){
@@ -145,7 +120,8 @@ int main()
     }
 
     const std::string rootPath(g_setting["recognize_images"]);
-    ConvertRGB2NV21Images(rootPath);
+    std::string nv21TargetPath("./nv21.rec.dir/");  
+    fem::ConvertRGB2NV21Images(rootPath, nv21TargetPath);
 
     Recognize recognizer;
     recognizer.LoadAllFaces(g_dbProxy);
