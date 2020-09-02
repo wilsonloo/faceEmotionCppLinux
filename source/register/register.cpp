@@ -15,6 +15,7 @@
 #include "nlohmann/json.hpp"
 
 #include "faceEngine.h"
+#include "dbProxy.h"
 
 using namespace std;
 
@@ -96,7 +97,7 @@ void ConvertRGB2NV21Images(const std::string& rootPath)
 
 void SaveFaceFeature(const ASF_FaceFeature& feature)
 {
-    ASF_FaceFeature copyfeature = { 0 } __attribute__((aligned(64)));;
+    ASF_FaceFeature copyfeature = { 0 };
     copyfeature.featureSize = feature.featureSize;
     copyfeature.feature = (MByte *)malloc(feature.featureSize);
     memset(copyfeature.feature, 0, feature.featureSize);
@@ -105,6 +106,7 @@ void SaveFaceFeature(const ASF_FaceFeature& feature)
 }
 
 nlohmann::json g_setting;
+DBProxy g_dbProxy;
 
 int main()
 {
@@ -119,6 +121,12 @@ int main()
     const std::string appId(g_setting["app_id"]);
     const std::string sdkKey(g_setting["sdk_key"]);
     faceEngine.DumpActivationInfos(const_cast<char*>(appId.c_str()), const_cast<char*>(sdkKey.c_str()), NULL);
+
+    // 初始化脸谱数据库
+    bool ok = g_dbProxy.Init(g_setting["db_path"]);
+    if(!ok){
+        exit(1);
+    }
 
     // 加载所有带注册的图片,并转为nv21格式
     const std::string imageRootPath(g_setting["register_images_path"]);

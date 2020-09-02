@@ -34,6 +34,7 @@ add_executable(register
 		./include/asvloffscreen.h
 		./include/merror.h
         ./source/faceEngine.cpp
+        ./source/dbProxy.cpp
 		./source/register/register.cpp)
 
 #-fPIC	在给定的作用域内设置一个命名的属性
@@ -49,6 +50,7 @@ target_link_libraries(register
         opencv_highgui
         opencv_imgproc
         opencv_imgcodecs
+        sqlite3
         )
 
 # 发布
@@ -56,5 +58,6 @@ add_custom_command(TARGET register POST_BUILD
             COMMAND cp register ${CMAKE_CURRENT_BINARY_DIR}/../bin
             COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
             COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face_engine.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
+            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libsqlite3.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
             COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/../bin/nv21.tmp.dir
         )
