@@ -14,10 +14,10 @@ public:
     bool Init(const std::string& dbPath);
 
     // 保存脸谱
-    void SaveFaceFeature(const std::string& faceName, const char* featureData);
+    void SaveFaceFeature(const std::string& faceName,  const char* feature, int featureSize);
 
 private:
-    void fixTableFace();
+    bool fixTableFace();
 };
 
 #endif

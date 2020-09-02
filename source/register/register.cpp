@@ -26,6 +26,9 @@ using namespace std;
 #define SafeArrayDelete(p) { if ((p)) delete [] (p); (p) = NULL; } 
 #define SafeDelete(p) { if ((p)) delete (p); (p) = NULL; } 
 
+nlohmann::json g_setting;
+DBProxy g_dbProxy;
+
 //图像颜色格式转换
 int ColorSpaceConversion(MInt32 width, MInt32 height, MInt32 format, MUInt8* imgData, ASVLOFFSCREEN& offscreen)
 {
@@ -95,18 +98,11 @@ void ConvertRGB2NV21Images(const std::string& rootPath)
     printf("\tconverting RGB images to NV21...Done\n");
 }
 
-void SaveFaceFeature(const ASF_FaceFeature& feature)
+// todo 写入到sqlite数据库
+void SaveFaceFeature(const std::string& faceName, const ASF_FaceFeature& feature)
 {
-    ASF_FaceFeature copyfeature = { 0 };
-    copyfeature.featureSize = feature.featureSize;
-    copyfeature.feature = (MByte *)malloc(feature.featureSize);
-    memset(copyfeature.feature, 0, feature.featureSize);
-    memcpy(copyfeature.feature, feature.feature, feature.featureSize);
-    // todo 写入到sqlite数据库
+    g_dbProxy.SaveFaceFeature(faceName, reinterpret_cast<const char*>(feature.feature), feature.featureSize);
 }
-
-nlohmann::json g_setting;
-DBProxy g_dbProxy;
 
 int main()
 {
@@ -142,6 +138,7 @@ int main()
     fem::utils::getFilePathsInDirectory(nv21Root, "nv21", nv21PathList);
     for(const std::string nv21Path : nv21PathList){
         printf("\tprocessing %s...\n", nv21Path.c_str());
+        std::string faceName = fem::utils::getFileName(nv21Path);
 
         MUInt8* imageData = (MUInt8*)malloc(HEIGHT*WIDTH*3/2);
         FILE* filePtr = fopen(nv21Path.c_str(), "rb"); 
@@ -187,7 +184,7 @@ int main()
                 {
                     //拷贝feature，否则第二次进行特征提取，会覆盖第一次特征提取的数据，导致比对的结果为1
                     printf("\tASFFaceFeatureExtractEx extra face ok\n");
-                    SaveFaceFeature(feature);    
+                    SaveFaceFeature(faceName, feature);    
                 }
             }
         }else{

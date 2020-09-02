@@ -8,6 +8,7 @@
 #include <string.h>
 #include <algorithm>  
 #include <fstream>
+#include <memory>
 #include <dirent.h>
 
 #include "arcsoft_face_sdk.h"
@@ -69,6 +70,16 @@ namespace fem
             return ScopeGuard< rLambda >(_r );
         }
         // ScopeGuard end ===================================
+        
+        template<typename ... Args>
+        std::string string_format(const std::string& format, Args ... args){
+            size_t size = 1 + snprintf(nullptr, 0, format.c_str(), args ...);  // Extra space for \0
+            // unique_ptr<char[]> buf(new char[size]);
+            char bytes[size];
+            snprintf(bytes, size, format.c_str(), args ...);
+            return std::string(bytes);
+        }
+
 
         //时间戳转换为日期格式
         static void timestampToTime(char* timeStamp, char* dateTime, int dateTimeSize)
