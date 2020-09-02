@@ -25,55 +25,8 @@ using namespace std;
 #define NSCALE 16 
 #define FACENUM	5
 
-#define SafeFree(p) { if ((p)) free(p); (p) = NULL; }
-#define SafeArrayDelete(p) { if ((p)) delete [] (p); (p) = NULL; } 
-#define SafeDelete(p) { if ((p)) delete (p); (p) = NULL; } 
-
 nlohmann::json g_setting;
 DBProxy g_dbProxy;
-
-//图像颜色格式转换
-int ColorSpaceConversion(MInt32 width, MInt32 height, MInt32 format, MUInt8* imgData, ASVLOFFSCREEN& offscreen)
-{
-	offscreen.u32PixelArrayFormat = (unsigned int)format;
-	offscreen.i32Width = width;
-	offscreen.i32Height = height;
-	
-	switch (offscreen.u32PixelArrayFormat)
-	{
-	case ASVL_PAF_RGB24_B8G8R8:
-		offscreen.pi32Pitch[0] = offscreen.i32Width * 3;
-		offscreen.ppu8Plane[0] = imgData;
-		break;
-	case ASVL_PAF_I420:
-		offscreen.pi32Pitch[0] = width;
-		offscreen.pi32Pitch[1] = width >> 1;
-		offscreen.pi32Pitch[2] = width >> 1;
-		offscreen.ppu8Plane[0] = imgData;
-		offscreen.ppu8Plane[1] = offscreen.ppu8Plane[0] + offscreen.i32Height*offscreen.i32Width;
-		offscreen.ppu8Plane[2] = offscreen.ppu8Plane[0] + offscreen.i32Height*offscreen.i32Width * 5 / 4;
-		break;
-	case ASVL_PAF_NV12:
-	case ASVL_PAF_NV21:
-		offscreen.pi32Pitch[0] = offscreen.i32Width;
-		offscreen.pi32Pitch[1] = offscreen.pi32Pitch[0];
-		offscreen.ppu8Plane[0] = imgData;
-		offscreen.ppu8Plane[1] = offscreen.ppu8Plane[0] + offscreen.pi32Pitch[0] * offscreen.i32Height;
-		break;
-	case ASVL_PAF_YUYV:
-	case ASVL_PAF_DEPTH_U16:
-		offscreen.pi32Pitch[0] = offscreen.i32Width * 2;
-		offscreen.ppu8Plane[0] = imgData;
-		break;
-	case ASVL_PAF_GRAY:
-		offscreen.pi32Pitch[0] = offscreen.i32Width;
-		offscreen.ppu8Plane[0] = imgData;
-		break;
-	default:
-		return 0;
-	}
-	return 1;
-}
 
 Recognize::~Recognize()
 {
