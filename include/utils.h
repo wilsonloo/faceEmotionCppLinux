@@ -78,8 +78,10 @@ namespace fem
             strftime(dateTime, dateTimeSize, "%Y-%m-%d %H:%M:%S", pTm);
         }
 
-        static void opencvRGB2NV21(const std::string& infile, const char* outfile)
+        static void opencvRGB2NV21(const std::string& infile, const std::string& outfilePath)
         {
+            const char* outfile = outfilePath.c_str();
+
             cv::Mat Img = cv::imread(infile);
             int buflen = (int)(Img.rows * Img.cols * 3 / 2);
             unsigned char* pYuvBuf = new unsigned char[buflen];
@@ -94,6 +96,8 @@ namespace fem
                 cvtColor(Img, OpencvYUV, CV_BGR2YUV_YV12);
                 memcpy(pYuvBuf, OpencvYUV.data, buflen*sizeof(unsigned char));
                 fwrite(pYuvBuf, buflen*sizeof(unsigned char), 1, fout);
+            }else{
+                printf("failed to find out file:%s\n", outfile);
             }
         }
 
@@ -101,11 +105,22 @@ namespace fem
         static std::string getFilePath(const std::string& fileFullName)
         {
             std::string directory;
-            const size_t last_slash_index = fileFullName.rfind('\\');
+            const size_t last_slash_index = fileFullName.rfind('/');
             if(std::string::npos != last_slash_index){
                 std::string directory = fileFullName.substr(0, last_slash_index);
                 return directory;
             }
+
+            return std::string(fileFullName);
+        }
+
+        // 获取文件名，包含文件类型
+        static std::string getFileName(const std::string& fileFullName)
+        {
+            const size_t last_slash_index = fileFullName.rfind('/');
+            if(std::string::npos != last_slash_index){
+                return fileFullName.substr(last_slash_index+1);
+            } 
 
             return std::string(fileFullName);
         }
@@ -129,7 +144,7 @@ namespace fem
                     const std::string dName(p->d_name);
 
                     // 按照指定后缀字符串，截取原本路径的尾部
-                    int index = path.size() - suffix.size();
+                    int index = dName.length() - suffix.length() - 1;
                     if(index <= 0){
                         continue;
                     }
