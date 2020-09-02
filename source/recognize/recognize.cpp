@@ -77,7 +77,7 @@ int ColorSpaceConversion(MInt32 width, MInt32 height, MInt32 format, MUInt8* img
 // 加载所有带注册的图片,并转为nv21格式
 void ConvertRGB2NV21Images(const std::string& rootPath)
 {
-    printf("converting RGB images to NV21 in %s...\n", rootPath.c_str());
+    printf("\nconverting RGB images to NV21 in %s...\n", rootPath.c_str());
 
     // 获取目录下的所有jpg文件
     std::list<std::string> imagePathList;
@@ -90,14 +90,14 @@ void ConvertRGB2NV21Images(const std::string& rootPath)
 
         // 将jpg改为nv21
         std::string imageName = fem::utils::getFileName(imagePath);
-        std::string nv21Path("./nv21.tmp.dir/");  
+        std::string nv21Path("./nv21.rec.dir/");  
         nv21Path.append(imageName.substr(0, imageName.length()-suffix.length()));
         nv21Path.append("nv21");
 
         fem::utils::opencvRGB2NV21(imagePath, nv21Path);
     }
 
-    printf("\tconverting RGB images to NV21...Done\n");
+    printf("converting RGB images to NV21...Done\n");
 }
 
 Recognize::~Recognize()
@@ -117,9 +117,11 @@ void Recognize::LoadAllFaces(DBProxy& dbProxy)
 }
 
 // 识别指定路径的图片
-void Recognize::RecognizeImages(const std::string& path)
+void Recognize::RecognizeImages(const std::string& rootPath)
 {
-
+    printf("\nrecognizing RGB images from %s...\n", rootPath.c_str());
+    
+    printf("recognizing RGB images ...Done\n");
 } 
 
 int main()
@@ -142,11 +144,14 @@ int main()
         exit(1);
     }
 
+    const std::string rootPath(g_setting["recognize_images"]);
+    ConvertRGB2NV21Images(rootPath);
+
     Recognize recognizer;
     recognizer.LoadAllFaces(g_dbProxy);
+    recognizer.Recognize(rootPath);
 
     /*
-
     // 加载所有带注册的图片,并转为nv21格式
     const std::string imageRootPath(g_setting["register_images_path"]);
     ConvertRGB2NV21Images(imageRootPath);
