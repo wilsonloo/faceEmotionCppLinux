@@ -1,7 +1,3 @@
-#include "arcsoft_face_sdk.h"
-#include "amcomdef.h"
-#include "asvloffscreen.h"
-#include "merror.h"
 #include <iostream>  
 #include <string>
 #include <stdio.h>
@@ -9,6 +5,11 @@
 #include <string.h>
 #include <time.h>
 #include <fstream>
+
+#include "arcsoft_face_sdk.h"
+#include "amcomdef.h"
+#include "asvloffscreen.h"
+#include "merror.h"
 
 #include "utils.h"
 #include "nlohmann/json.hpp"
@@ -93,6 +94,16 @@ void ConvertRGB2NV21Images(const std::string& rootPath)
     printf("\tconverting RGB images to NV21...Done\n");
 }
 
+void SaveFaceFeature(const ASF_FaceFeature& feature)
+{
+    ASF_FaceFeature copyfeature = { 0 } __attribute__((aligned(64)));;
+    copyfeature.featureSize = feature.featureSize;
+    copyfeature.feature = (MByte *)malloc(feature.featureSize);
+    memset(copyfeature.feature, 0, feature.featureSize);
+    memcpy(copyfeature.feature, feature.feature, feature.featureSize);
+    // todo 写入到sqlite数据库
+}
+
 nlohmann::json g_setting;
 
 int main()
@@ -141,7 +152,6 @@ int main()
             ASF_MultiFaceInfo detectedFaces = { 0 };
             ASF_SingleFaceInfo SingleDetectedFaces = { 0 };
             ASF_FaceFeature feature = { 0 };
-            ASF_FaceFeature copyfeature = { 0 };
             
             MHandle& handle = faceEngine.GetHandle();
             MRESULT res = ASFDetectFacesEx(handle, &offscreen, &detectedFaces);;
@@ -169,11 +179,7 @@ int main()
                 {
                     //拷贝feature，否则第二次进行特征提取，会覆盖第一次特征提取的数据，导致比对的结果为1
                     printf("\tASFFaceFeatureExtractEx extra face ok\n");
-                    
-                    copyfeature.featureSize = feature.featureSize;
-                    copyfeature.feature = (MByte *)malloc(feature.featureSize);
-                    memset(copyfeature.feature, 0, feature.featureSize);
-                    memcpy(copyfeature.feature, feature.feature, feature.featureSize);
+                    SaveFaceFeature(feature);    
                 }
             }
         }else{
