@@ -79,7 +79,7 @@ void ConvertRGB2NV21Images(const std::string& rootPath)
 
     // 对每个jpg进行nv21转码
     for(const std::string& imagePath : imagePathList){
-        printf("converting RGB image %s\n", imagePath.c_str());
+        printf("\tconverting RGB image %s\n", imagePath.c_str());
 
         // 将jpg改为nv21
         std::string imageName = fem::utils::getFileName(imagePath);
@@ -90,7 +90,7 @@ void ConvertRGB2NV21Images(const std::string& rootPath)
         fem::utils::opencvRGB2NV21(imagePath, nv21Path);
     }
 
-    printf("converting RGB images to NV21...Done\n");
+    printf("\tconverting RGB images to NV21...Done\n");
 }
 
 nlohmann::json g_setting;
@@ -114,12 +114,16 @@ int main()
     ConvertRGB2NV21Images(imageRootPath);
 
     // 加载nv21 文件
+    const std::string nv21Root = "./nv21.tmp.dir";
 	const int WIDTH = 640;
 	const int HEIGHT = 480;
 	const int FORMAT = ASVL_PAF_NV21;
+    printf("loading nv21 files in %s...\n", nv21Root.c_str());
     std::list<std::string> nv21PathList;
-    fem::utils::getFilePathsInDirectory(imageRootPath, "nv21", nv21PathList);
+    fem::utils::getFilePathsInDirectory(nv21Root, "nv21", nv21PathList);
     for(const std::string nv21Path : nv21PathList){
+        printf("\tprocessing %s...\n", nv21Path.c_str());
+
         MUInt8* imageData = (MUInt8*)malloc(HEIGHT*WIDTH*3/2);
         FILE* filePtr = fopen(nv21Path.c_str(), "rb"); 
         if(filePtr != NULL){
@@ -143,10 +147,12 @@ int main()
             MRESULT res = ASFDetectFacesEx(handle, &offscreen, &detectedFaces);;
             if (res != MOK && detectedFaces.faceNum > 0)
             {
-                printf("%s ASFDetectFaces 1 fail: %d\n", nv21Path.c_str(), res);
+                printf("\tASFDetectFaces detect face failed: %d\n", res);
             }
             else
             {
+                printf("\tASFDetectFaces detect face ok\n");
+
                 SingleDetectedFaces.faceRect.left = detectedFaces.faceRect[0].left;
                 SingleDetectedFaces.faceRect.top = detectedFaces.faceRect[0].top;
                 SingleDetectedFaces.faceRect.right = detectedFaces.faceRect[0].right;
@@ -157,18 +163,21 @@ int main()
                 res = ASFFaceFeatureExtractEx(handle, &offscreen, &SingleDetectedFaces, &feature);
                 if (res != MOK)
                 {
-                    printf("%s ASFFaceFeatureExtractEx 1 fail: %d\n", nv21Path.c_str(), res);
+                    printf("\tASFFaceFeatureExtractEx extra face feature fail: %d\n", res);
                 }
                 else
                 {
                     //拷贝feature，否则第二次进行特征提取，会覆盖第一次特征提取的数据，导致比对的结果为1
+                    printf("\tASFFaceFeatureExtractEx extra face ok\n");
+                    
                     copyfeature.featureSize = feature.featureSize;
                     copyfeature.feature = (MByte *)malloc(feature.featureSize);
                     memset(copyfeature.feature, 0, feature.featureSize);
                     memcpy(copyfeature.feature, feature.feature, feature.featureSize);
                 }
             }
-
+        }else{
+            printf("\tprocessing %s: file not found!\n", nv21Path.c_str());
         }
     }
 
