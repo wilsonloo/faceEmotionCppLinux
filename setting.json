@@ -1,7 +1,0 @@
-{
-    // 根据不同平台制定appid和sdkkey
-    "app_id" : "6e3ZXZijjAS4LEME8FAQ5t6RNYYfHS6V1kHA2EavGkUn",
-    "sdk_key": "EkWxhjU8ZtyCEQHwvNpS6jCVA3mHFMMpdYjqd3mjV9vD"
-
-    "register_images_path" : "",
-}

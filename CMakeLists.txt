@@ -43,6 +43,10 @@ target_link_libraries(register
         PRIVATE nlohmann_json::nlohmann_json
 		arcsoft_face
 		arcsoft_face_engine
+        opencv_core
+        opencv_highgui
+        opencv_imgproc
+        opencv_imgcodecs
         )
 
 # 发布

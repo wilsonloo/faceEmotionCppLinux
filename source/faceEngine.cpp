@@ -5,8 +5,8 @@
 #include "asvloffscreen.h"
 #include "merror.h"
 
-#include "common.h"
 #include "faceEngine.h"
+#include "utils.h"
 
 #define NSCALE 16 
 #define FACENUM 5
@@ -25,11 +25,11 @@ void FaceEngine::DumpSDKInfos()
     {
         //这里仅获取了有效期时间，还需要其他信息直接打印即可
         char startDateTime[32];
-        fem::timestampToTime(activeFileInfo.startTime, startDateTime, 32);
+        fem::utils::timestampToTime(activeFileInfo.startTime, startDateTime, 32);
         printf("startTime: %s\n", startDateTime);
         
         char endDateTime[32];
-        fem::timestampToTime(activeFileInfo.endTime, endDateTime, 32);
+        fem::utils::timestampToTime(activeFileInfo.endTime, endDateTime, 32);
         printf("endTime: %s\n", endDateTime);
     }
 

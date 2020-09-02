@@ -10,7 +10,7 @@
 #include <time.h>
 #include <fstream>
 
-#include "common.h"
+#include "utils.h"
 #include "nlohmann/json.hpp"
 
 #include "faceEngine.h"
@@ -67,6 +67,21 @@ int ColorSpaceConversion(MInt32 width, MInt32 height, MInt32 format, MUInt8* img
 	return 1;
 }
 
+// 加载所有带注册的图片,并转为nv21格式
+void ConvertRGB2NV21Images(const std::string& rootPath)
+{
+    // 获取目录下的所有jpg文件
+    std::list<std::string> imagePathList;
+    fem::utils::getFilePathsInDirectory(rootPath, "jpg", imagePathList);
+
+    // 对每个jpg进行nv21转码
+    for(const std::string& imagePath : imagePathList){
+        // 将jpg改为nv21
+        auto nv21Path = imagePath.substr(0, imagePath.size()-3) + "nv21";
+        fem::utils::opencvRGB2NV21(imagePath, nv21Path.c_str());
+    }
+}
+
 nlohmann::json g_setting;
 
 int main()
@@ -79,12 +94,76 @@ int main()
     faceEngine.Init();
     faceEngine.DumpSDKInfos();
 
-    std::string appId(g_setting["app_id"]);
-    std::string sdkKey(g_setting["sdk_key"]);
+    const std::string appId(g_setting["app_id"]);
+    const std::string sdkKey(g_setting["sdk_key"]);
     faceEngine.DumpActivationInfos(const_cast<char*>(appId.c_str()), const_cast<char*>(sdkKey.c_str()), NULL);
 
+    // 加载所有带注册的图片,并转为nv21格式
+    const std::string imageRootPath(g_setting["register_images_path"]);
+    ConvertRGB2NV21Images(imageRootPath);
+
+    // 加载nv21 文件
+	const int WIDTH = 640;
+	const int HEIGHT = 480;
+	const int FORMAT = ASVL_PAF_NV21;
+    std::list<std::string> nv21PathList;
+    fem::utils::getFilePathsInDirectory(imageRootPath, "nv21", nv21PathList);
+    for(const std::string nv21Path : nv21PathList){
+        MUInt8* imageData = (MUInt8*)malloc(HEIGHT*WIDTH*3/2);
+        FILE* filePtr = fopen(nv21Path.c_str(), "rb"); 
+        if(filePtr != NULL){
+            const auto& scopeGuard = fem::utils::makeScopeGuard([&](){
+                fclose(filePtr);
+            });
+
+            //读取nv21 裸数据
+            fread(imageData, 1, HEIGHT*WIDTH*3/2, filePtr);
+        
+            ASVLOFFSCREEN offscreen = { 0 };
+            ColorSpaceConversion(WIDTH, HEIGHT, ASVL_PAF_NV21, imageData, offscreen);
+            
+            //第一张人脸
+            ASF_MultiFaceInfo detectedFaces = { 0 };
+            ASF_SingleFaceInfo SingleDetectedFaces = { 0 };
+            ASF_FaceFeature feature = { 0 };
+            ASF_FaceFeature copyfeature = { 0 };
+            
+            MHandle& handle = faceEngine.GetHandle();
+            MRESULT res = ASFDetectFacesEx(handle, &offscreen, &detectedFaces);;
+            if (res != MOK && detectedFaces.faceNum > 0)
+            {
+                printf("%s ASFDetectFaces 1 fail: %d\n", nv21Path.c_str(), res);
+            }
+            else
+            {
+                SingleDetectedFaces.faceRect.left = detectedFaces.faceRect[0].left;
+                SingleDetectedFaces.faceRect.top = detectedFaces.faceRect[0].top;
+                SingleDetectedFaces.faceRect.right = detectedFaces.faceRect[0].right;
+                SingleDetectedFaces.faceRect.bottom = detectedFaces.faceRect[0].bottom;
+                SingleDetectedFaces.faceOrient = detectedFaces.faceOrient[0];
+                
+                // 单人脸特征提取
+                res = ASFFaceFeatureExtractEx(handle, &offscreen, &SingleDetectedFaces, &feature);
+                if (res != MOK)
+                {
+                    printf("%s ASFFaceFeatureExtractEx 1 fail: %d\n", nv21Path.c_str(), res);
+                }
+                else
+                {
+                    //拷贝feature，否则第二次进行特征提取，会覆盖第一次特征提取的数据，导致比对的结果为1
+                    copyfeature.featureSize = feature.featureSize;
+                    copyfeature.feature = (MByte *)malloc(feature.featureSize);
+                    memset(copyfeature.feature, 0, feature.featureSize);
+                    memcpy(copyfeature.feature, feature.feature, feature.featureSize);
+                }
+            }
+
+        }
+    }
+
+
 	/*********以下三张图片均存在，图片保存在 ./bulid/images/ 文件夹下*********/
-	
+    /*	
 	//可见光图像 NV21格式裸数据
 	char* picPath1 = "../images/640x480_1.NV21";
 	int Width1 = 640;
@@ -292,6 +371,7 @@ int main()
 	{
 		printf("No pictures found.\n");
 	}
+    */
 
 	getchar();
     return 0;
