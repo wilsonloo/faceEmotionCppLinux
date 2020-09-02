@@ -26,6 +26,9 @@ include_directories(./include)
 #指定静态和动态文件目录
 link_directories(./lib)
 
+#
+# 人脸注册相关 *************************************************************
+# 
 #该指令的主要作用就是将指定的源文件生成链接文件，然后添加到工程中去。
 #arcsoft_face生成的库文件名		[STATIC | SHARED | MODULE] 库类型
 add_executable(register
@@ -61,3 +64,43 @@ add_custom_command(TARGET register POST_BUILD
             COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libsqlite3.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
             COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/../bin/nv21.tmp.dir
         )
+
+
+#
+# 人脸识别相关 *************************************************************
+# 
+#该指令的主要作用就是将指定的源文件生成链接文件，然后添加到工程中去。
+#arcsoft_face生成的库文件名		[STATIC | SHARED | MODULE] 库类型
+add_executable(recognize
+        ./include/amcomdef.h
+        ./include/arcsoft_face_sdk.h
+		./include/asvloffscreen.h
+		./include/merror.h
+        ./source/faceEngine.cpp
+        ./source/dbProxy.cpp
+		./source/recognize/recognize.cpp)
+
+#-fPIC	在给定的作用域内设置一个命名的属性
+set_property(TARGET recognize PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+#链接库文件
+target_link_libraries(recognize
+        PRIVATE nlohmann_json::nlohmann_json
+		arcsoft_face
+		arcsoft_face_engine
+        opencv_core
+        opencv_highgui
+        opencv_imgproc
+        opencv_imgcodecs
+        sqlite3
+        )
+
+# 发布
+add_custom_command(TARGET recognize POST_BUILD
+            COMMAND cp recognize ${CMAKE_CURRENT_BINARY_DIR}/../bin
+            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
+            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face_engine.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
+            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libsqlite3.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
+            COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/../bin/nv21.tmp.dir
+        )
+

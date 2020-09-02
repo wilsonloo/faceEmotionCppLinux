@@ -70,3 +70,37 @@ void DBProxy::SaveFaceFeature(const std::string& faceName, const char* feature, 
     }        
 }
 
+// 加载全部脸谱
+bool DBProxy::LoadAllFaces(PersonMapType& personInfoMap)
+{
+    printf("\nLoading all falses...\n");
+    
+    int nrow=0;
+    int ncolumn = 0;
+    char *zErrMsg =NULL;
+    char **azResult=NULL; //二维数组存放结果
+
+    const std::string sql = "select name, feature, featureSize from t_face";
+    int retCode = sqlite3_get_table(m_db, sql.c_str(), &azResult, &nrow, &ncolumn, &zErrMsg);
+    if(retCode != SQLITE_OK){
+        fprintf(stderr, "failed to load all faces:%s\n", zErrMsg);
+        return false;
+    }
+
+    std::vector<std::string> rowValues(ncolumn);
+    for(int k = 0; k < nrow; k++){
+        rowValues.clear();
+
+        int cellIndex = (k+1)*ncolumn;
+        const std::string& faceName(azResult[cellIndex+0]);
+        const std::string& featureData(azResult[cellIndex+1]);
+        const std::string& featureSize(azResult[cellIndex+2]);
+        PersonInfo* person = new PersonInfo(faceName, featureData, featureSize);
+        personInfoMap.emplace(faceName, person); 
+
+        printf("\tface: %s\n", faceName.c_str()); 
+    }
+
+    printf("Loading all falses...Done\n");
+    return true;
+}

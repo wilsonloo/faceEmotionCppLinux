@@ -2,7 +2,10 @@
 #define _FACE_EMOTION_DB_PROXY_H_
 
 #include <string>
+#include <vector>
 #include "sqlite3.h"
+
+#include "personInfo.h"
 
 class DBProxy
 {
@@ -16,7 +19,11 @@ public:
     // 保存脸谱
     void SaveFaceFeature(const std::string& faceName,  const char* feature, int featureSize);
 
+    // 加载全部脸谱
+    bool LoadAllFaces(PersonMapType& personInfoMap);
+
 private:
+    // 修正脸谱表
     bool fixTableFace();
 };
 
