@@ -8,10 +8,14 @@ from ctypes import *
 # 加载内部库
 fe = cdll.LoadLibrary("libfaceEmotion.so")   
 
+# 初始化实例
+initor = fe.fe_init
+initor.restype = ctypes.c_void_p
+instance = initor()
+
 # 获取版本信息
-getFaceEmotionVersion = fe.fe_getVersion
-getFaceEmotionVersion.restype = ctypes.c_char_p
-print(getFaceEmotionVersion())
+getFaceEmotionVersion = fe.fe_dumpInfos
+getFaceEmotionVersion(instance)
 
 # 测试传递结构体
 class RecognizeResult(Structure):
@@ -23,8 +27,7 @@ class RecognizeResult(Structure):
 
 recognizeFunc = fe.fe_recognize
 recognizeFunc.restype = (RecognizeResult)
-ret = recognizeFunc(bytes('/dummy',encoding='utf-8'))
-print(ret)
+ret = recognizeFunc(instance, bytes('/dummy',encoding='utf-8'))
 print("code:", ret.code)
 print("name:", ret.name)
 print("confidenceLevel:", ret.confidenceLevel)
