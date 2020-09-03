@@ -345,3 +345,8 @@ int main()
     return 0;
 }
 
+extern "C" 
+const char* GetFaceEmotionVersion()                                                    
+{                                                                                                 
+    return "face-emotion version: 1.0.0";
+}

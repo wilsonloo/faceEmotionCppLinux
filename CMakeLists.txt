@@ -104,3 +104,30 @@ add_custom_command(TARGET recognize POST_BUILD
             COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/../bin/nv21.tmp.dir
         )
 
+#
+# 人脸识别so相关 *************************************************************
+# 
+SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
+ADD_LIBRARY(recognizePso SHARED 
+    ./include/amcomdef.h
+    ./include/arcsoft_face_sdk.h
+    ./include/asvloffscreen.h
+    ./include/merror.h
+    ./source/faceEngine.cpp
+    ./source/dbProxy.cpp
+    ./source/recognize/recognize.cpp
+    )
+
+#链接库文件
+target_link_libraries(recognizePso
+        PRIVATE nlohmann_json::nlohmann_json
+		arcsoft_face
+		arcsoft_face_engine
+        opencv_core
+        opencv_highgui
+        opencv_imgproc
+        opencv_imgcodecs
+        sqlite3
+        )
+
+
