@@ -151,11 +151,11 @@ namespace fem
                 MRESULT res = ASFDetectFacesEx(handle, &offscreen, &detectedFaces);;
                 if (res != MOK && detectedFaces.faceNum > 0)
                 {
-                    printf("\tASFDetectFaces detect face failed: %d\n", res);
+                    printf("\tASFDetectFaces detect face:%s failed: %d\n", faceName.c_str(), res);
                 }
                 else
                 {
-                    printf("\tASFDetectFaces detect face ok\n");
+                    printf("\tASFDetectFaces detect face:%s ok\n", faceName.c_str());
 
                     // 我的脸部信息
                     MyFaceInfo* myFaceInfo = new MyFaceInfo();
@@ -174,7 +174,7 @@ namespace fem
                     res = ASFFaceFeatureExtractEx(handle, &offscreen, &myFaceInfo->faceInfo, &faceFeatureTemp);
                     if (res != MOK)
                     {
-                        printf("\tASFFaceFeatureExtractEx extra face feature fail: %d\n", res);
+                        printf("\tASFFaceFeatureExtractEx extra face:%s feature fail: %d\n", faceName.c_str(), res);
                     }
                     else
                     {

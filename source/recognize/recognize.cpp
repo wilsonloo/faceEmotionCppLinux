@@ -64,7 +64,9 @@ Recognize::SimularType Recognize::SearchSimular(MHandle& handle, ASF_FaceFeature
             printf("[Debug] ASFFaceFeatureCompare with: %s fail: %d\n", personInfo->name.c_str(), res);
         }else{ 
             printf("[Debug] ASFFaceFeatureCompare with: %s sucess: %lf\n", personInfo->name.c_str(), confidenceLevel);
-            if(confidenceLevel > maxLevel){
+            
+            // 生活照相似度，要>=0.8 才算是匹配
+            if(confidenceLevel >= 0.8 && confidenceLevel > maxLevel){
                 maxLevel = confidenceLevel;
                 maxPersonInfo = personInfo;
             }
