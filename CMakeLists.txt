@@ -108,7 +108,7 @@ add_custom_command(TARGET recognize POST_BUILD
 # 人脸识别so相关 *************************************************************
 # 
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
-ADD_LIBRARY(recognizePso SHARED 
+ADD_LIBRARY(faceEmotion SHARED 
     ./include/amcomdef.h
     ./include/arcsoft_face_sdk.h
     ./include/asvloffscreen.h
@@ -116,10 +116,11 @@ ADD_LIBRARY(recognizePso SHARED
     ./source/faceEngine.cpp
     ./source/dbProxy.cpp
     ./source/recognize/recognize.cpp
+    ./source/libFaceEmotion/libFaceEmotion.cpp
     )
 
 #链接库文件
-target_link_libraries(recognizePso
+target_link_libraries(faceEmotion
         PRIVATE nlohmann_json::nlohmann_json
 		arcsoft_face
 		arcsoft_face_engine
