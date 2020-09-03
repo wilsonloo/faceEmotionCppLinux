@@ -23,7 +23,7 @@ class RecognizeResult(Structure):
 
 recognizeFunc = fe.fe_recognize
 recognizeFunc.restype = (RecognizeResult)
-ret = recognizeFunc("/dummy")
+ret = recognizeFunc(bytes('/dummy',encoding='utf-8'))
 print(ret)
 print("code:", ret.code)
 print("name:", ret.name)
