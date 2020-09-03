@@ -2,3 +2,4 @@ build
 bin
 *.un~
 *.swp
+lib/libfaceEmotion.so

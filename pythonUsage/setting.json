@@ -1,0 +1,8 @@
+{
+    "app_id" : "6e3ZXZijjAS4LEME8FAQ5t6RNYYfHS6V1kHA2EavGkUn",
+    "sdk_key": "EkWxhjU8ZtyCEQHwvNpS6jCVA3mHFMMpdYjqd3mjV9vD",
+
+    "db_path" : "/home/wilson/faceEmotionCppLinux/bin/db.sqlite",
+    "register_images_path" : "/home/wilson/faceEmotionCppLinux/res/register_images",
+    "recognize_images_path" : "/home/wilson/faceEmotionCppLinux/res/recognize_images"
+}
