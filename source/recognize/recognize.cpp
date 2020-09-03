@@ -14,6 +14,7 @@
 
 #include "common.h"
 #include "utils.h"
+#include "data_dump.hpp"
 #include "nlohmann/json.hpp"
 
 #include "faceEngine.h"
@@ -44,13 +45,34 @@ void Recognize::LoadAllFaces(DBProxy& dbProxy)
     g_dbProxy.LoadAllFaces(m_persons);
 }
 
-// 识别指定路径的图片
-void Recognize::RecognizeImages(const std::string& rootPath)
+Recognize::SimularType Recognize::SearchSimular(MHandle& handle, ASF_FaceFeature& feature)
 {
-    printf("\nrecognizing RGB images from %s...\n", rootPath.c_str());
-    
-    printf("recognizing RGB images ...Done\n");
-} 
+    MFloat maxLevel = 0;
+    PersonInfo* maxPersonInfo = NULL;
+
+    // fem::utils::data_dump(stdout, feature.feature, feature.featureSize, "AAAAAAA");
+
+    for(auto iter = m_persons.begin(); iter != m_persons.end(); ++iter){
+	    // 单人脸特征比对
+        MFloat confidenceLevel;
+
+        PersonInfo* personInfo = iter->second;
+        // fem::utils::data_dump(stdout, feature.feature, feature.featureSize, std::string("person-").append(personInfo->name).c_str());
+
+        MRESULT res = ASFFaceFeatureCompare(handle, &personInfo->feature, &feature, &confidenceLevel);
+        if (res != MOK){
+            printf("[Debug] ASFFaceFeatureCompare with: %s fail: %d\n", personInfo->name.c_str(), res);
+        }else{ 
+            printf("[Debug] ASFFaceFeatureCompare with: %s sucess: %lf\n", personInfo->name.c_str(), confidenceLevel);
+            if(confidenceLevel > maxLevel){
+                maxLevel = confidenceLevel;
+                maxPersonInfo = personInfo;
+            }
+        }
+    }
+
+    return Recognize::SimularType(maxLevel, maxPersonInfo); 
+}
 
 int main()
 {
@@ -72,85 +94,41 @@ int main()
         exit(1);
     }
 
-    const std::string rootPath(g_setting["recognize_images"]);
-    std::string nv21TargetPath("./nv21.rec.dir/");  
-    fem::ConvertRGB2NV21Images(rootPath, nv21TargetPath);
+    const std::string rootPath(g_setting["recognize_images_path"]);
 
     Recognize recognizer;
     recognizer.LoadAllFaces(g_dbProxy);
-    recognizer.Recognize(rootPath);
 
-    /*
-    // 加载所有带注册的图片,并转为nv21格式
-    const std::string imageRootPath(g_setting["register_images_path"]);
-    ConvertRGB2NV21Images(imageRootPath);
+    printf("\nrecognizing images in: %s...\n", rootPath.c_str());
 
-    // 加载nv21 文件
-    const std::string nv21Root = "./nv21.tmp.dir";
-	const int WIDTH = 640;
-	const int HEIGHT = 480;
-	const int FORMAT = ASVL_PAF_NV21;
-    printf("loading nv21 files in %s...\n", nv21Root.c_str());
-    std::list<std::string> nv21PathList;
-    fem::utils::getFilePathsInDirectory(nv21Root, "nv21", nv21PathList);
-    for(const std::string nv21Path : nv21PathList){
-        printf("\tprocessing %s...\n", nv21Path.c_str());
-        std::string faceName = fem::utils::getFileName(nv21Path);
+    MHandle& handle = faceEngine.GetHandle();
+    std::list<fem::MyFaceInfo*> faceInfoList;
+    fem::DetectFaces(handle, rootPath, faceInfoList);
 
-        MUInt8* imageData = (MUInt8*)malloc(HEIGHT*WIDTH*3/2);
-        FILE* filePtr = fopen(nv21Path.c_str(), "rb"); 
-        if(filePtr != NULL){
-            const auto& scopeGuard = fem::utils::makeScopeGuard([&](){
-                fclose(filePtr);
-            });
-
-            //读取nv21 裸数据
-            fread(imageData, 1, HEIGHT*WIDTH*3/2, filePtr);
+    // 进行人脸分类
+    for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter){
+        fem::MyFaceInfo* myFaceInfo = *iter;
+        printf("\n**************************************************\n");
+        printf("image %s\n", myFaceInfo->imagePath.c_str());
+        printf("tag  : %s\n", myFaceInfo->faceName.c_str());
+        printf("rect : [%d, %d, %d, %d] origin: %d\n", 
+                myFaceInfo->faceInfo.faceRect.left, 
+                myFaceInfo->faceInfo.faceRect.top,
+                myFaceInfo->faceInfo.faceRect.right,
+                myFaceInfo->faceInfo.faceRect.bottom,
+                myFaceInfo->faceInfo.faceOrient);
         
-            ASVLOFFSCREEN offscreen = { 0 };
-            ColorSpaceConversion(WIDTH, HEIGHT, ASVL_PAF_NV21, imageData, offscreen);
-            
-            //第一张人脸
-            ASF_MultiFaceInfo detectedFaces = { 0 };
-            ASF_SingleFaceInfo SingleDetectedFaces = { 0 };
-            ASF_FaceFeature feature = { 0 };
-            
-            MHandle& handle = faceEngine.GetHandle();
-            MRESULT res = ASFDetectFacesEx(handle, &offscreen, &detectedFaces);;
-            if (res != MOK && detectedFaces.faceNum > 0)
-            {
-                printf("\tASFDetectFaces detect face failed: %d\n", res);
-            }
-            else
-            {
-                printf("\tASFDetectFaces detect face ok\n");
-
-                SingleDetectedFaces.faceRect.left = detectedFaces.faceRect[0].left;
-                SingleDetectedFaces.faceRect.top = detectedFaces.faceRect[0].top;
-                SingleDetectedFaces.faceRect.right = detectedFaces.faceRect[0].right;
-                SingleDetectedFaces.faceRect.bottom = detectedFaces.faceRect[0].bottom;
-                SingleDetectedFaces.faceOrient = detectedFaces.faceOrient[0];
-                
-                // 单人脸特征提取
-                res = ASFFaceFeatureExtractEx(handle, &offscreen, &SingleDetectedFaces, &feature);
-                if (res != MOK)
-                {
-                    printf("\tASFFaceFeatureExtractEx extra face feature fail: %d\n", res);
-                }
-                else
-                {
-                    //拷贝feature，否则第二次进行特征提取，会覆盖第一次特征提取的数据，导致比对的结果为1
-                    printf("\tASFFaceFeatureExtractEx extra face ok\n");
-                    SaveFaceFeature(faceName, feature);    
-                }
-            }
+        Recognize::SimularType simular = recognizer.SearchSimular(handle, myFaceInfo->faceFeature);
+        if(simular.second != NULL){
+            printf("maybe: %s, confidenceLevel: %.2f\n", simular.second->name.c_str(), simular.first);
         }else{
-            printf("\tprocessing %s: file not found!\n", nv21Path.c_str());
-        }
-    }
-    */
+            printf("no one found.\n");
+        } 
+	}
 
-	/*********以下三张图片均存在，图片保存在 ./bulid/images/ 文件夹下*********/
+    printf("recognizing nv21 images...Done\n");
+    
+    /*********以下三张图片均存在，图片保存在 ./bulid/images/ 文件夹下*********/
     /*	
 	//可见光图像 NV21格式裸数据
 	char* picPath1 = "../images/640x480_1.NV21";

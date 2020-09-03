@@ -6,6 +6,7 @@
 #include "sqlite3.h"
 
 #include "utils.h"
+#include "data_dump.hpp"
 
 bool DBProxy::Init(const std::string& dbPath)
 {
@@ -43,7 +44,7 @@ bool DBProxy::fixTableFace()
         // 数据表不存
         const char* createFaceSql = "CREATE TABLE t_face( \
                                      name varchar(100) primary key, \
-                                     feature varchar(1024), \
+                                     feature blob, \
                                      featureSize unsigned int(11) \
                                      )"; 
         int retCode = sqlite3_exec(m_db, createFaceSql, NULL, NULL, &zErrMsg);
@@ -62,45 +63,45 @@ void DBProxy::SaveFaceFeature(const std::string& faceName, const char* feature, 
 {
     char *zErrMsg =NULL;
 
-    std::string sql = fem::utils::string_format("replace into t_face(name, feature, featureSize)values('%s', '%s', '%d')", 
-        faceName.c_str(), feature, featureSize);
-    int retCode = sqlite3_exec(m_db, sql.c_str(), NULL, NULL, &zErrMsg);
-    if(retCode != SQLITE_OK){
-        fprintf(stderr, "failed to save face features:%s\n", zErrMsg); 
+    // fem::utils::data_dump(stdout, feature, featureSize, std::string("SaveFaceFeature-").append(faceName).c_str());
+
+    const char* sql = "replace into t_face(name, feature, featureSize)values(?, ?, ?)"; 
+    sqlite3_stmt* stmt = NULL;
+    sqlite3_prepare(m_db, sql, -1, &stmt, NULL);
+    sqlite3_bind_text(stmt, 1, faceName.c_str(), faceName.size(), NULL);
+    sqlite3_bind_blob(stmt, 2, feature, featureSize, NULL);
+    sqlite3_bind_int(stmt, 3, featureSize);
+
+    int retCode = sqlite3_step(stmt);
+    if(retCode != SQLITE_DONE){
+        fprintf(stderr, "failed to save face features:%d: %s\n", retCode, sqlite3_errmsg(m_db)); 
     }        
+
+    sqlite3_finalize(stmt);
 }
 
 // 加载全部脸谱
 bool DBProxy::LoadAllFaces(PersonMapType& personInfoMap)
 {
-    printf("\nLoading all falses...\n");
+    printf("\nLoading all faces...\n");
+
+    sqlite3_stmt* stmt = NULL;
+    sqlite3_prepare(m_db, "select name, feature, featureSize from t_face", -1, &stmt, NULL);
     
-    int nrow=0;
-    int ncolumn = 0;
-    char *zErrMsg =NULL;
-    char **azResult=NULL; //二维数组存放结果
+    while(sqlite3_step(stmt)  == SQLITE_ROW){
+        const char* faceName = (const char*)(sqlite3_column_text(stmt, 0));
+        const void* featureData = sqlite3_column_blob(stmt, 1);
+        int featureSize = sqlite3_column_int(stmt, 2);
 
-    const std::string sql = "select name, feature, featureSize from t_face";
-    int retCode = sqlite3_get_table(m_db, sql.c_str(), &azResult, &nrow, &ncolumn, &zErrMsg);
-    if(retCode != SQLITE_OK){
-        fprintf(stderr, "failed to load all faces:%s\n", zErrMsg);
-        return false;
-    }
-
-    std::vector<std::string> rowValues(ncolumn);
-    for(int k = 0; k < nrow; k++){
-        rowValues.clear();
-
-        int cellIndex = (k+1)*ncolumn;
-        const std::string& faceName(azResult[cellIndex+0]);
-        const std::string& featureData(azResult[cellIndex+1]);
-        const std::string& featureSize(azResult[cellIndex+2]);
         PersonInfo* person = new PersonInfo(faceName, featureData, featureSize);
         personInfoMap.emplace(faceName, person); 
 
-        printf("\tface: %s\n", faceName.c_str()); 
+        printf("\tface: %s\n", faceName); 
+        // fem::utils::data_dump(stdout, featureData, featureSize, std::string("LoadFace-").append(faceName).c_str());
     }
 
-    printf("Loading all falses...Done\n");
+    sqlite3_finalize(stmt);
+    
+    printf("Loading all faces...Done\n");
     return true;
 }

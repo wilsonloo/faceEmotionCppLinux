@@ -18,14 +18,17 @@ struct PersonInfo
     std::string     name;
     ASF_FaceFeature feature;
 
-    PersonInfo(const std::string& name, const std::string& featureData, const std::string& featureSize)
+    PersonInfo(const char* name, const void* featureData, int featureSize)
     {
-        this->name = name;
-        this->feature.featureSize = atoi(featureSize.c_str());
+        this->name.assign(name);
+
+        memset(&feature, 0, sizeof(feature));
+
+        this->feature.featureSize = featureSize;
         if(this->feature.featureSize > 0){
-            this->feature.feature = (MByte*)malloc(this->feature.featureSize);
-            memset(this->feature.feature, 0, this->feature.featureSize);
-            memcpy(this->feature.feature, featureData.c_str(), this->feature.featureSize);
+            this->feature.feature = (MByte*)malloc(featureSize);
+            memset(this->feature.feature, 0, featureSize);
+            memcpy(this->feature.feature, featureData, featureSize);
         }else{
             this->feature.feature = NULL;
         }

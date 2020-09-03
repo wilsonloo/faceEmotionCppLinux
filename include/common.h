@@ -1,6 +1,10 @@
 #ifndef _FACE_EMOTION_COMMON_H_
 #define _FACE_EMOTION_COMMON_H_
 
+#include <list>
+#include <string>
+#include "utils.h"
+
 namespace fem
 {
     // 加载所有带注册的图片,并转为nv21格式
@@ -18,7 +22,7 @@ namespace fem
 
             // 将jpg改为nv21
             std::string imageName = fem::utils::getFileName(imagePath);
-            std::string nv21Path = targetPath;
+            std::string nv21Path = targetPath + "/";
             nv21Path.append(imageName.substr(0, imageName.length()-suffix.length()));
             nv21Path.append("nv21");
 
@@ -86,14 +90,24 @@ namespace fem
         std::string imagePath;
 
         // 脸部边框
-        ASF_SingleFaceInfo& faceInfo;
+        ASF_SingleFaceInfo faceInfo;
 
         // 脸部特征
         ASF_FaceFeature faceFeature;
+
+        virtual ~MyFaceInfo()
+        {
+            if(faceFeature.feature != NULL){
+                free(faceFeature.feature);
+                faceFeature.feature = NULL;
+            }
+
+            faceFeature.featureSize = 0;
+        }
     };
 
     // MHandle& handle = faceEngine.GetHandle();
-    void DetectFaces(MHandle& handle, const std::string& imageRootPath, /*out*/std::list<MyFaceInfo>& faceInfoList)
+    void DetectFaces(MHandle& handle, const std::string& imageRootPath, /*out*/std::list<MyFaceInfo*>& faceInfoList)
     {
         // 加载nv21 文件
         const int WIDTH = 640;
@@ -114,9 +128,9 @@ namespace fem
             auto nv21Path = *nv21PathIter;
             auto imagePath = *imagePathIter;
 
-
             // 脸的名字，没有文件类型名
             std::string faceName = fem::utils::getFileName(nv21Path);
+            faceName = faceName.substr(0, faceName.length()-5);
 
             MUInt8* imageData = (MUInt8*)malloc(HEIGHT*WIDTH*3/2);
             FILE* filePtr = fopen(nv21Path.c_str(), "rb"); 
@@ -144,18 +158,20 @@ namespace fem
                     printf("\tASFDetectFaces detect face ok\n");
 
                     // 我的脸部信息
-                    MyFaceInfo myFaceInfo;
-                    myFaceInfo.faceName = faceName;
-                    myFaceInfo.imagePath = imagePath;
+                    MyFaceInfo* myFaceInfo = new MyFaceInfo();
+                    myFaceInfo->faceName = faceName;
+                    myFaceInfo->imagePath = imagePath;
 
-                    myFaceInfo.faceInfo.faceRect.left = detectedFaces.faceRect[0].left;
-                    myFaceInfo.faceInfo.faceRect.top = detectedFaces.faceRect[0].top;
-                    myFaceInfo.faceInfo.faceRect.right = detectedFaces.faceRect[0].right;
-                    myFaceInfo.faceInfo.faceRect.bottom = detectedFaces.faceRect[0].bottom;
-                    myFaceInfo.faceInfo.faceOrient = detectedFaces.faceOrient[0];
+                    myFaceInfo->faceInfo.faceRect.left = detectedFaces.faceRect[0].left;
+                    myFaceInfo->faceInfo.faceRect.top = detectedFaces.faceRect[0].top;
+                    myFaceInfo->faceInfo.faceRect.right = detectedFaces.faceRect[0].right;
+                    myFaceInfo->faceInfo.faceRect.bottom = detectedFaces.faceRect[0].bottom;
+                    myFaceInfo->faceInfo.faceOrient = detectedFaces.faceOrient[0];
                     
                     // 单人脸特征提取
-                    res = ASFFaceFeatureExtractEx(handle, &offscreen, &myFaceInfo.faceInfo, &myFaceInfo.faceFeature);
+                    // 脸部特征
+                    ASF_FaceFeature faceFeatureTemp;
+                    res = ASFFaceFeatureExtractEx(handle, &offscreen, &myFaceInfo->faceInfo, &faceFeatureTemp);
                     if (res != MOK)
                     {
                         printf("\tASFFaceFeatureExtractEx extra face feature fail: %d\n", res);
@@ -163,6 +179,10 @@ namespace fem
                     else
                     {
                         //拷贝feature，否则第二次进行特征提取，会覆盖第一次特征提取的数据，导致比对的结果为1
+                        myFaceInfo->faceFeature.featureSize = faceFeatureTemp.featureSize;
+                        myFaceInfo->faceFeature.feature = (MByte *)malloc(faceFeatureTemp.featureSize);
+                        memset(myFaceInfo->faceFeature.feature, 0, faceFeatureTemp.featureSize);
+                        memcpy(myFaceInfo->faceFeature.feature, faceFeatureTemp.feature, faceFeatureTemp.featureSize);
                         faceInfoList.emplace_back(myFaceInfo);
                     }
                 }

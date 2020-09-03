@@ -13,6 +13,7 @@
 
 #include "common.h"
 #include "utils.h"
+#include "data_dump.hpp"
 #include "nlohmann/json.hpp"
 
 #include "faceEngine.h"
@@ -57,12 +58,12 @@ int main()
     const std::string nv21Root = "./nv21.tmp.dir";
 
     MHandle& handle = faceEngine.GetHandle();
-    std::list<MyFaceInfo> faceInfoList;
+    std::list<fem::MyFaceInfo*> faceInfoList;
     fem::DetectFaces(handle, imageRootPath, faceInfoList);
 
     // 存档到数据库
     for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter){
-        SaveFaceFeature(iter->faceName, iter->faceInfo); 
+        SaveFaceFeature((*iter)->faceName, (*iter)->faceFeature); 
     }
 
     return 0;

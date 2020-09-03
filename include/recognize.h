@@ -14,6 +14,9 @@
 
 class Recognize
 {
+public:
+    typedef std::pair<MFloat/*confidenceLevel*/, PersonInfo*> SimularType;
+
 private:
     PersonMapType m_persons;
 
@@ -23,8 +26,8 @@ public:
     // 加载全部脸谱
     void LoadAllFaces(DBProxy& dbProxy);
 
-    // 识别指定路径的图片
-    void RecognizeImages(const std::string& path);
+    // 相似度查找
+    SimularType SearchSimular(MHandle& handle, ASF_FaceFeature& feature);
 };
 
 #endif
