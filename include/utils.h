@@ -26,6 +26,56 @@ namespace fem
 {
     namespace utils
     {
+ 
+        /// <summary>
+        /// 获取图片缩放比例,使至少一个轴与对方同等长度
+        /// </summary>
+        /// <param name="oldWidth">原图片宽</param>
+        /// <param name="oldHeigt">原图片高</param>
+        /// <param name="newWidth">目标图片宽</param>
+        /// <param name="newHeight">目标图片高</param>
+        /// <returns>float</returns>
+        static float getWidthAndHeightScale(int oldWidth, int oldHeigt, int newWidth, int newHeight)
+        {
+            //按比例缩放           
+            float scaleRate = 0.0f;
+            if (oldWidth >= newWidth && oldHeigt >= newHeight)
+            {
+                int widthDis = oldWidth - newWidth;
+                int heightDis = oldHeigt - newHeight;
+                if (widthDis > heightDis)
+                {
+                    scaleRate = newWidth * 1.0f / oldWidth;
+                }
+                else
+                {
+                    scaleRate = newHeight * 1.0f / oldHeigt;
+                }
+            }
+            else if (oldWidth >= newWidth && oldHeigt < newHeight)
+            {
+                scaleRate = newWidth * 1.0f / oldWidth;
+            }
+            else if (oldWidth < newWidth && oldHeigt >= newHeight)
+            {
+                scaleRate = newHeight * 1.0f / oldHeigt;
+            }
+            else
+            {
+                int widthDis = newWidth - oldWidth;
+                int heightDis = newHeight - oldHeigt;
+                if (widthDis > heightDis)
+                {
+                    scaleRate = newHeight * 1.0f / oldHeigt;
+                }
+                else
+                {
+                    scaleRate = newWidth * 1.0f / oldWidth;
+                }
+            }
+            return scaleRate;
+        }
+
         // ScopeGuard ===================================
         template< typename Lambda >
         class ScopeGuard
@@ -93,11 +143,32 @@ namespace fem
             strftime(dateTime, dateTimeSize, "%Y-%m-%d %H:%M:%S", pTm);
         }
 
-        static void opencvRGB2NV21(const std::string& infile, const std::string& outfilePath)
+        static cv::Mat resizeMatImage(cv::Mat pSrc, double dScale)
+        {
+            cv::Size sSize = cv::Size(pSrc.cols*dScale, pSrc.rows*dScale);
+            cv::Mat pDes(sSize, CV_32S);
+            cv::resize(pSrc, pDes, sSize);
+            return pDes;
+        }
+
+        static cv::Mat checkWidthAndHeight(cv::Mat img,const int targetWidth,const int targetHeight) 
+        {
+            if(img.cols == targetWidth && img.rows == targetHeight){
+                return img;
+            } 
+
+            double scale = getWidthAndHeightScale(img.cols, img.rows, targetWidth, targetHeight);
+            return resizeMatImage(img, scale);
+        }
+
+        static void opencvRGB2NV21(const std::string& infile, 
+                const int targetWidth, const int targetHeight, const std::string& outfilePath)
         {
             const char* outfile = outfilePath.c_str();
 
             cv::Mat Img = cv::imread(infile);
+            Img = checkWidthAndHeight(Img, targetWidth, targetWidth);
+
             int buflen = (int)(Img.rows * Img.cols * 3 / 2);
             unsigned char* pYuvBuf = new unsigned char[buflen];
 
@@ -178,7 +249,7 @@ namespace fem
                     list.push_back(fullName);
                 }
             }
-        } 
+        }        
     }
 }
 

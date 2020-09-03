@@ -8,7 +8,8 @@
 namespace fem
 {
     // 加载所有带注册的图片,并转为nv21格式
-    void ConvertRGB2NV21Images(const std::string& rootPath, const std::string& targetPath, 
+    static void ConvertRGB2NV21Images(const std::string& rootPath, const std::string& targetPath, 
+            const int targetWidth, const int targetHeight,
             /*out*/std::list<std::string>* outImagePathList = NULL, 
             /*out*/std::list<std::string>* outNV21PathList = NULL)
     {
@@ -26,7 +27,7 @@ namespace fem
             nv21Path.append(imageName.substr(0, imageName.length()-suffix.length()));
             nv21Path.append("nv21");
 
-            fem::utils::opencvRGB2NV21(imagePath, nv21Path);
+            fem::utils::opencvRGB2NV21(imagePath, targetWidth, targetHeight, nv21Path);
 
             // 进行文件返回
             if(outImagePathList != NULL){
@@ -107,7 +108,7 @@ namespace fem
     };
 
     // MHandle& handle = faceEngine.GetHandle();
-    void DetectFaces(MHandle& handle, const std::string& imageRootPath, /*out*/std::list<MyFaceInfo*>& faceInfoList)
+    static void DetectFaces(MHandle& handle, const std::string& imageRootPath, /*out*/std::list<MyFaceInfo*>& faceInfoList)
     {
         // 加载nv21 文件
         const int WIDTH = 640;
@@ -119,7 +120,7 @@ namespace fem
         printf("loading nv21 files in %s...\n", nv21Root.c_str());
         std::list<std::string> imagePathList;
         std::list<std::string> nv21PathList;
-        ConvertRGB2NV21Images(imageRootPath, nv21Root, &imagePathList, &nv21PathList);
+        ConvertRGB2NV21Images(imageRootPath, nv21Root, WIDTH, HEIGHT, &imagePathList, &nv21PathList);
 
         // 对每个nv21文件进行人脸检测
         auto nv21PathIter = nv21PathList.begin();
