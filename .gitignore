@@ -4,3 +4,5 @@ bin
 *.swp
 lib/libfaceEmotion.so
 pythonUsage/nv21.tmp.dir/
+pythonUsage/.ipynb_checkpoints/
+pythonUsage/__pycache__/

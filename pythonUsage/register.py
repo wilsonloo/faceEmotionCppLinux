@@ -32,7 +32,6 @@ def register(targetPath):
             print(targetPath, ": is a special file(socket,FIFO,device file)")
             sys.exit(1)
         
-         
         # 加载内部库
         fe = cdll.LoadLibrary("libfaceEmotion.so")   
         
@@ -54,9 +53,9 @@ def register(targetPath):
             registerSingle = fe.fe_registerSingle
             registerSingle.restype = (RegisterResult)
             ret = registerSingle(instance, bytes(targetPath, encoding='utf-8'))
-            print("register result:")
-            print("  ", ret.name)
-            print("  ", ret.imagePath)
+            #print("register result:")
+            #print("  ", ret.name)
+            #print("  ", ret.imagePath)
             list = []
             list.append(ret)
             return list
