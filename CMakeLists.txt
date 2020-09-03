@@ -3,7 +3,7 @@ project(faceEmotionCppLinux)				#指定项目的名称，一般和项目的文�
 
 set(CMAKE_CXX_STANDARD 11)				#设置c++标准
 set(CMAKE_BUILD_TYPE Debug)
-SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb") #debug模式下开启-g选项
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -Wno-unused-function -Wno-format -Wno-unused-variable -g2 -ggdb") #debug模式下开启-g选项
 
 # Typically you don't care so much for a third party library's tests to be
 # run from your own project's code.

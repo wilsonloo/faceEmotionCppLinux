@@ -8,15 +8,27 @@
 namespace fem
 {
     // 加载所有带注册的图片,并转为nv21格式
-    static void ConvertRGB2NV21Images(const std::string& rootPath, const std::string& targetPath, 
-            const int targetWidth, const int targetHeight,
+    static void ConvertRGB2NV21Images(const char* rootPath, 
+            const char* singlePath, 
+            const std::string& targetPath, 
+            const int targetWidth, 
+            const int targetHeight,
             /*out*/std::list<std::string>* outImagePathList = NULL, 
             /*out*/std::list<std::string>* outNV21PathList = NULL)
     {
         // 获取目录下的所有jpg文件
         std::list<std::string> imagePathList;
         const std::string suffix = "png";
-        fem::utils::getFilePathsInDirectory(rootPath, suffix, imagePathList);
+
+        printf("111\n");
+        if(rootPath != NULL){
+            printf("111-2\n");
+            fem::utils::getFilePathsInDirectory(rootPath, suffix, imagePathList);
+        }else{
+            printf("111-3:>%s\n", singlePath);
+            assert(singlePath != NULL);
+            imagePathList.push_back(singlePath);
+        }
 
         // 对每个jpg进行nv21转码
         for(const std::string& imagePath : imagePathList){
@@ -40,7 +52,7 @@ namespace fem
     }
         
     //图像颜色格式转换
-    int ColorSpaceConversion(MInt32 width, MInt32 height, MInt32 format, MUInt8* imgData, ASVLOFFSCREEN& offscreen)
+    static int ColorSpaceConversion(MInt32 width, MInt32 height, MInt32 format, MUInt8* imgData, ASVLOFFSCREEN& offscreen)
     {
         offscreen.u32PixelArrayFormat = (unsigned int)format;
         offscreen.i32Width = width;
@@ -107,8 +119,10 @@ namespace fem
         }
     };
 
-    // MHandle& handle = faceEngine.GetHandle();
-    static void DetectFaces(MHandle& handle, const std::string& imageRootPath, /*out*/std::list<MyFaceInfo*>& faceInfoList)
+    static void DetectFaces(MHandle& handle, 
+            const char* imageRootPath, 
+            const char* imageSinglePath, 
+            /*out*/std::list<MyFaceInfo*>& faceInfoList)
     {
         // 加载nv21 文件
         const int WIDTH = 640;
@@ -117,10 +131,11 @@ namespace fem
         const std::string nv21Root = "./nv21.tmp.dir";
 
         // 将jpg图片转成nv21 文件
-        printf("loading nv21 files in %s...\n", nv21Root.c_str());
+        printf("convering rgb iamge to nv21 files in %s...\n", nv21Root.c_str());
         std::list<std::string> imagePathList;
         std::list<std::string> nv21PathList;
-        ConvertRGB2NV21Images(imageRootPath, nv21Root, WIDTH, HEIGHT, &imagePathList, &nv21PathList);
+        ConvertRGB2NV21Images(imageRootPath, imageSinglePath, nv21Root, WIDTH, HEIGHT, &imagePathList, &nv21PathList);
+        printf("convering Done\n");
 
         // 对每个nv21文件进行人脸检测
         auto nv21PathIter = nv21PathList.begin();

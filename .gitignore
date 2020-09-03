@@ -3,3 +3,4 @@ bin
 *.un~
 *.swp
 lib/libfaceEmotion.so
+pythonUsage/nv21.tmp.dir/

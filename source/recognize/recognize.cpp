@@ -105,7 +105,7 @@ int main()
 
     MHandle& handle = faceEngine.GetHandle();
     std::list<fem::MyFaceInfo*> faceInfoList;
-    fem::DetectFaces(handle, rootPath, faceInfoList);
+    fem::DetectFaces(handle, rootPath.c_str(), NULL, faceInfoList);
 
     // 进行人脸分类
     for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter){

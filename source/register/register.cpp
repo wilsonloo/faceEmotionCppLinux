@@ -59,7 +59,7 @@ int main()
 
     MHandle& handle = faceEngine.GetHandle();
     std::list<fem::MyFaceInfo*> faceInfoList;
-    fem::DetectFaces(handle, imageRootPath, faceInfoList);
+    fem::DetectFaces(handle, imageRootPath.c_str(), NULL, faceInfoList);
 
     // 存档到数据库
     for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter){

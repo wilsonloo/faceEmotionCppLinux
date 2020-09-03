@@ -8,6 +8,7 @@
 #include "dbProxy.h"
 #include "recognize.h"
 #include "faceEngine.h"
+#include "common.h"
     
 extern "C" 
 {
@@ -103,6 +104,9 @@ extern "C"
     // @param imagePath 待识别的图片地址
     RegisterResult fe_registerSingle(void* pInstance, const char* imagePath)
     {
+        assert(pInstance != NULL);
+        assert(imagePath != NULL);
+
         auto instance = static_cast<Instance*>(pInstance);
         auto& faceEngine = instance->m_faceEngine;
         auto& settings = instance->m_setting;
@@ -110,9 +114,38 @@ extern "C"
         auto& recognizer = instance->m_recognizer;
         
         printf("\nregistering face: %s...\n", imagePath);
+        
+        const std::string nv21Root = "./nv21.tmp.dir";
+
+        MHandle& handle = faceEngine.GetHandle();
+        std::list<fem::MyFaceInfo*> faceInfoList;
+        fem::DetectFaces(handle, NULL, imagePath, faceInfoList);
+
+        // 注册结果
+        RegisterResult ret;
+
+        // 存档到数据库
+        for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter){
+            const std::string& faceName = (*iter)->faceName;
+            const std::string& imPath = (*iter)->imagePath;
+            const auto& feature = (*iter)->faceFeature;
+            dbProxy.SaveFaceFeature(faceName, reinterpret_cast<const char*>(feature.feature), feature.featureSize);
+ 
+            // 拷贝名字
+            memset(&ret.name[0], 0, sizeof(ret.name));
+            strncpy(&ret.name[0], faceName.c_str(), sizeof(ret.name));
+            ret.name[sizeof(ret.name)-1] = '\0';
+
+            // 拷贝原始图片路径
+            memset(&ret.imagePath[0], 0, sizeof(ret.imagePath));
+            strncpy(&ret.imagePath[0], imPath.c_str(), sizeof(ret.imagePath));
+            ret.imagePath[sizeof(ret.imagePath)-1] = '\0';
+
+            break;
+       }
+
         printf("registering face...Done\n");
 
-        RegisterResult ret;
         return ret;
     }
 
