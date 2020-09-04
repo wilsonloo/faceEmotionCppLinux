@@ -10,69 +10,85 @@ from ctypes import *
 class RegisterResult(Structure):
     _fields_ = [
         ("name", ctypes.c_char * 100),
-        ("imagePath", ctypes.c_char * 1024)
+        ("imagePath", ctypes.c_char * 1024),
+        ("left", ctypes.c_int),
+        ("top", ctypes.c_int),
+        ("right", ctypes.c_int),
+        ("bottom", ctypes.c_int)
+    ]
+    
+class RegisterResultResponse(Structure):
+    _fields_ = [
+        ("count", ctypes.c_int),
+        ("elems", POINTER(RegisterResult))
     ]
 
 # 注册函数入口
-def register(targetPath):
-    try:
-        # 检验解码目录
-        if not os.path.exists('./nv21.tmp.dir'):
-            os.makedirs('./nv21.tmp.dir')
+def register(instance, targetPath):
+    # 检验解码目录
+    if not os.path.exists('./nv21.tmp.dir'):
+        os.makedirs('./nv21.tmp.dir')
 
-        # 根据对象是单文件还是路径，进行区分注册
+    # 根据对象是单文件还是路径，进行区分注册
+    isTargetDir = False
+    if os.path.isdir(targetPath):
+        isTargetDir = True
+        #print("注册目录：", targetPath)
+    elif os.path.isfile(targetPath):
         isTargetDir = False
-        if os.path.isdir(targetPath):
-            isTargetDir = True
-            print("注册目录：", targetPath)
-        elif os.path.isfile(targetPath):
-            isTargetDir = False
-            print("注册图片：", targetPath)
-        else:
-            print(targetPath, ": is a special file(socket,FIFO,device file)")
-            sys.exit(1)
-        
-        # 加载内部库
-        fe = cdll.LoadLibrary("libfaceEmotion.so")   
-        
-        # 初始化实例
-        initor = fe.fe_init
-        initor.restype = ctypes.c_void_p
-        instance = initor()
+        #print("注册图片：", targetPath)
+    else:
+        print(targetPath, ": is a special file(socket,FIFO,device file)")
+        sys.exit(1)
 
-        # 获取版本信息
-        getFaceEmotionVersion = fe.fe_dumpInfos
-        getFaceEmotionVersion(instance)
+    fe = cdll.LoadLibrary("libfaceEmotion.so")
+    
+    # 获取版本信息
+    getFaceEmotionVersion = fe.fe_dumpInfos
+    getFaceEmotionVersion(instance)
 
-        if isTargetDir:
-            # 目录注册
-            print("unimpleted yes")
-            sys.exit(2)
-        else:
-            # 单张图片注册
-            registerSingle = fe.fe_registerSingle
-            registerSingle.restype = (RegisterResult)
-            ret = registerSingle(instance, bytes(targetPath, encoding='utf-8'))
-            #print("register result:")
-            #print("  ", ret.name)
-            #print("  ", ret.imagePath)
-            list = []
-            list.append(ret)
-            return list
+    if isTargetDir:
+        # 目录注册
+        registerBatch = fe.fe_registerBatch
+        registerBatch.restype = (RegisterResultResponse)
+        return registerBatch(instance, bytes(targetPath, encoding='utf-8'))
+    else:
+        # 单张图片注册
+        registerSingle = fe.fe_registerSingle
+        registerSingle.restype = (RegisterResultResponse)
+        return registerSingle(instance, bytes(targetPath, encoding='utf-8'))
+    
+# 释放注册结果    
+def releaseRegisterResponse(instance, response):
+    fe = cdll.LoadLibrary("libfaceEmotion.so")
+    releaser = fe.fe_releaseRegisterResult
+    releaser(response)
+    response = None
 
-    finally:
-        if instance != None:
-            releaser = fe.fe_release
-            releaser(instance)
-            instance = None
+def createInstance():
+    # 加载内部库
+    fe = cdll.LoadLibrary("libfaceEmotion.so")   
+    # 初始化实例
+    initor = fe.fe_init
+    initor.restype = ctypes.c_void_p
+    instance = initor()
+    return instance
 
+def releaseInstance(instance):
+    fe = cdll.LoadLibrary("libfaceEmotion.so")
+    if instance != None:
+        releaser = fe.fe_release
+        releaser(instance)
+        instance = None
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python register.py <图片或目录>")
         sys.exit(1)
-
+        
+    instance = createInstance()
     # sys.argv[0])           #sys.argv[0] 类似于shell中的$0,但不是脚本名称，而是脚本的路径   
     targetPath = sys.argv[1] #sys.argv[1] 表示传入的第一个参数, 注册对象路径
-    register(targetPath) 
+    response = register(instance, targetPath) 
+    releaseRegisterResponse(instance, reaponse)
 

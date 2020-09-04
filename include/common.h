@@ -20,12 +20,9 @@ namespace fem
         std::list<std::string> imagePathList;
         const std::string suffix = "png";
 
-        printf("111\n");
         if(rootPath != NULL){
-            printf("111-2\n");
             fem::utils::getFilePathsInDirectory(rootPath, suffix, imagePathList);
         }else{
-            printf("111-3:>%s\n", singlePath);
             assert(singlePath != NULL);
             imagePathList.push_back(singlePath);
         }

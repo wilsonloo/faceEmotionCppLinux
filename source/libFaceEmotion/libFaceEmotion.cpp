@@ -36,6 +36,16 @@ extern "C"
 
         // 图片完整路径
         char imagePath[1024];
+
+        int left;
+        int top;
+        int right;
+        int bottom;
+    };
+
+    struct RegisterResultResponse{
+        int count;
+        RegisterResult* elems;
     };
 
     struct RecognizeResult
@@ -102,7 +112,7 @@ extern "C"
 
     // 注册单张脸谱
     // @param imagePath 待识别的图片地址
-    RegisterResult fe_registerSingle(void* pInstance, const char* imagePath)
+    RegisterResultResponse fe_registerSingle(void* pInstance, const char* imagePath)
     {
         assert(pInstance != NULL);
         assert(imagePath != NULL);
@@ -122,38 +132,56 @@ extern "C"
         fem::DetectFaces(handle, NULL, imagePath, faceInfoList);
 
         // 注册结果
-        RegisterResult ret;
+        RegisterResultResponse response;
+        response.count = 0;
+        response.elems = NULL; //new RegisterResult[response.count];
+        
+        if(!faceInfoList.empty()){
+            response.count = 1;
+            response.elems = new RegisterResult[1];
+            
+            // 存档到数据库
+            for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter){
+                const std::string& faceName = (*iter)->faceName;
+                const std::string& imPath = (*iter)->imagePath;
+                const auto& asfFaceInfo = (*iter)->faceInfo;
+                const auto& asfFeature = (*iter)->faceFeature;
+                dbProxy.SaveFaceFeature(faceName, reinterpret_cast<const char*>(asfFeature.feature), asfFeature.featureSize);
 
-        // 存档到数据库
-        for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter){
-            const std::string& faceName = (*iter)->faceName;
-            const std::string& imPath = (*iter)->imagePath;
-            const auto& feature = (*iter)->faceFeature;
-            dbProxy.SaveFaceFeature(faceName, reinterpret_cast<const char*>(feature.feature), feature.featureSize);
- 
-            // 拷贝名字
-            memset(&ret.name[0], 0, sizeof(ret.name));
-            strncpy(&ret.name[0], faceName.c_str(), sizeof(ret.name));
-            ret.name[sizeof(ret.name)-1] = '\0';
+                RegisterResult& ret = response.elems[0];
+     
+                // 拷贝名字
+                memset(&ret.name[0], 0, sizeof(ret.name));
+                strncpy(&ret.name[0], faceName.c_str(), sizeof(ret.name));
+                ret.name[sizeof(ret.name)-1] = '\0';
 
-            // 拷贝原始图片路径
-            memset(&ret.imagePath[0], 0, sizeof(ret.imagePath));
-            strncpy(&ret.imagePath[0], imPath.c_str(), sizeof(ret.imagePath));
-            ret.imagePath[sizeof(ret.imagePath)-1] = '\0';
+                // 拷贝原始图片路径
+                memset(&ret.imagePath[0], 0, sizeof(ret.imagePath));
+                strncpy(&ret.imagePath[0], imPath.c_str(), sizeof(ret.imagePath));
+                ret.imagePath[sizeof(ret.imagePath)-1] = '\0';
 
-            break;
-       }
+                // 人脸框框
+                ret.left = asfFaceInfo.faceRect.left;
+                ret.top = asfFaceInfo.faceRect.top;
+                ret.right = asfFaceInfo.faceRect.right;
+                ret.bottom = asfFaceInfo.faceRect.bottom;
 
-        printf("registering face...Done\n");
+                break;
+           }
 
-        return ret;
+           printf("registering face...Done\n");
+        }else{
+            printf("registering 0 faces...Done\n"); 
+        }
+
+        return response;
     }
 
 
     // 注册脸谱
     // @param imagePathRoot 待识别的图片地址
     // @return int 新注册的脸谱个数
-    int fe_registerBatch(void* pInstance, const char* imagePathRoot)
+    RegisterResultResponse fe_registerBatch(void* pInstance, const char* imagePathRoot)
     {
         auto instance = static_cast<Instance*>(pInstance);
         auto& faceEngine = instance->m_faceEngine;
@@ -164,9 +192,65 @@ extern "C"
         int count = 0;
 
         printf("\nregistering faces in path: %s...\n", imagePathRoot);
-        printf("registering %d faces...Done", count);
+ 
+        const std::string nv21Root = "./nv21.tmp.dir";
 
-        return count;
+        MHandle& handle = faceEngine.GetHandle();
+        std::list<fem::MyFaceInfo*> faceInfoList;
+        fem::DetectFaces(handle, imagePathRoot, NULL, faceInfoList);
+
+        // 注册结果
+        RegisterResultResponse response;
+        response.count = 0;
+        response.elems = NULL;
+
+        if(!faceInfoList.empty()){
+            response.count = faceInfoList.size();
+            response.elems = new RegisterResult[response.count];
+
+            // 存档到数据库
+            int k = 0;
+            for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter, ++k){
+                const std::string& faceName = (*iter)->faceName;
+                const std::string& imPath = (*iter)->imagePath;
+                const auto& asfFaceInfo = (*iter)->faceInfo;
+                const auto& asfFeature = (*iter)->faceFeature;
+                dbProxy.SaveFaceFeature(faceName, reinterpret_cast<const char*>(asfFeature.feature), asfFeature.featureSize);
+     
+                RegisterResult& ret = response.elems[k];
+
+                // 拷贝名字
+                memset(&ret.name[0], 0, sizeof(ret.name));
+                strncpy(&ret.name[0], faceName.c_str(), sizeof(ret.name));
+                ret.name[sizeof(ret.name)-1] = '\0';
+
+                // 拷贝原始图片路径
+                memset(&ret.imagePath[0], 0, sizeof(ret.imagePath));
+                strncpy(&ret.imagePath[0], imPath.c_str(), sizeof(ret.imagePath));
+                ret.imagePath[sizeof(ret.imagePath)-1] = '\0';
+
+                // 人脸框框
+                ret.left = asfFaceInfo.faceRect.left;
+                ret.top = asfFaceInfo.faceRect.top;
+                ret.right = asfFaceInfo.faceRect.right;
+                ret.bottom = asfFaceInfo.faceRect.bottom;
+           }
+
+           printf("registering %d faces...Done", faceInfoList.size());
+
+        }else{
+            printf("registering 0 faces...Done");
+        }
+        return response;
+    }
+
+    // 释放注册结果
+    void fe_releaseRegisterResult(RegisterResultResponse what)
+    {
+        if(what.elems != NULL){
+            delete[] what.elems;
+            what.elems = NULL;
+        }
     }
 
     // 识别图片
@@ -190,8 +274,6 @@ extern "C"
 
         ret.confidenceLevel = 345.678f;
         */
-
-
 
         return ret;
     }
