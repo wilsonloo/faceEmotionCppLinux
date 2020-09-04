@@ -24,14 +24,14 @@ using namespace std;
 #define NSCALE 16 
 #define FACENUM	5
 
+// todo 写入到sqlite数据库
+void SaveFaceFeature(DBProxy& dbProxy, const std::string& faceName, const ASF_FaceFeature& feature)
+{
+    dbProxy.SaveFaceFeature(faceName, reinterpret_cast<const char*>(feature.feature), feature.featureSize);
+}
+
 nlohmann::json g_setting;
 DBProxy g_dbProxy;
-
-// todo 写入到sqlite数据库
-void SaveFaceFeature(const std::string& faceName, const ASF_FaceFeature& feature)
-{
-    g_dbProxy.SaveFaceFeature(faceName, reinterpret_cast<const char*>(feature.feature), feature.featureSize);
-}
 
 int main()
 {
@@ -63,7 +63,7 @@ int main()
 
     // 存档到数据库
     for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter){
-        SaveFaceFeature((*iter)->faceName, (*iter)->faceFeature); 
+        SaveFaceFeature(g_dbProxy, (*iter)->faceName, (*iter)->faceFeature); 
     }
 
     return 0;

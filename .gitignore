@@ -1,6 +1,7 @@
 build
 bin
 *.un~
+*.py~
 *.swp
 lib/libfaceEmotion.so
 pythonUsage/nv21.tmp.dir/

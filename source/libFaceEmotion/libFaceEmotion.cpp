@@ -28,7 +28,8 @@ extern "C"
         nlohmann::json m_setting;
     };
 
-    // 单张图片的注册结果
+    // /////////////////////////////////////////////////////////
+    // 图片的注册结果
     struct RegisterResult
     {
         // 识别到的对方名字
@@ -42,22 +43,37 @@ extern "C"
         int right;
         int bottom;
     };
-
-    struct RegisterResultResponse{
+    struct RegisterResultResponse
+    {
         int count;
         RegisterResult* elems;
     };
 
+    // /////////////////////////////////////////////////////////
+    // 图片的识别结果
     struct RecognizeResult
     {
-        // 错误码（等同于arcface的错误码）
-        int code; 
+         // 识别到的对方名字
+        char name[100];   
+
+        // 图片完整路径
+        char imagePath[1024];
+
+        int left;
+        int top;
+        int right;
+        int bottom;
 
         // 识别到的对方名字
-        char name[100];   
+        char personName[100];   
         
         // 识别置信等级
         float confidenceLevel;          
+    };
+    struct RecognizeResultResponse
+    {
+        int count;
+        RecognizeResult* elems;
     };
 
     void* fe_init()
@@ -186,6 +202,9 @@ extern "C"
     // @return int 新注册的脸谱个数
     RegisterResultResponse fe_registerBatch(void* pInstance, const char* imagePathRoot)
     {
+        assert(pInstance != NULL);
+        assert(imagePathRoot != NULL);
+
         auto instance = static_cast<Instance*>(pInstance);
         auto& faceEngine = instance->m_faceEngine;
         auto& settings = instance->m_setting;
@@ -214,28 +233,124 @@ extern "C"
         }
     }
 
+    // 进行实际的识别分类
+    RecognizeResultResponse doRecognizeFaces(Recognize& recognizer, MHandle& handle, const std::list<fem::MyFaceInfo*>& faceInfoList)
+    {
+        RecognizeResultResponse response;
+        response.count = 0;
+        response.elems = NULL;
+
+        if(faceInfoList.empty()){
+            printf("recognizing 0 faces...Done");
+            return response;
+        }
+
+        response.count = faceInfoList.size();
+        response.elems = new RecognizeResult[response.count];
+
+        // 进行脸部特征匹配 
+        int k = 0;
+        for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter, ++k){
+            const std::string& faceName = (*iter)->faceName;
+            const std::string& imPath = (*iter)->imagePath;
+            const auto& asfFaceInfo = (*iter)->faceInfo;
+            auto& asfFeature = (*iter)->faceFeature;
+ 
+            // 识别结果
+            auto& ret = response.elems[k];
+
+            // 拷贝图片名字
+            memset(&ret.name[0], 0, sizeof(ret.name));
+            strncpy(&ret.name[0], faceName.c_str(), sizeof(ret.name));
+            ret.name[sizeof(ret.name)-1] = '\0';
+
+            // 拷贝原始图片路径
+            memset(&ret.imagePath[0], 0, sizeof(ret.imagePath));
+            strncpy(&ret.imagePath[0], imPath.c_str(), sizeof(ret.imagePath));
+            ret.imagePath[sizeof(ret.imagePath)-1] = '\0';
+
+            // 人脸框框
+            ret.left = asfFaceInfo.faceRect.left;
+            ret.top = asfFaceInfo.faceRect.top;
+            ret.right = asfFaceInfo.faceRect.right;
+            ret.bottom = asfFaceInfo.faceRect.bottom;
+
+           // 通过特征匹配
+            Recognize::SimularType simular = recognizer.SearchSimular(handle, asfFeature);
+            if(simular.second != NULL){
+                // 拷贝图片名字
+                memset(&ret.personName[0], 0, sizeof(ret.personName));
+                strncpy(&ret.personName[0], simular.second->name.c_str(), sizeof(ret.personName));
+                ret.personName[sizeof(ret.personName)-1] = '\0';
+
+                ret.confidenceLevel = (float)simular.first;
+            }else{
+                ret.personName[0] = '\0';
+                ret.confidenceLevel = 0.0f;
+            } 
+       }
+
+       printf("recognizing %d faces...Done", faceInfoList.size());
+       return response;
+    }
+
     // 识别图片
     // @param imagePath 待识别的图片地址
     // @return 识别结果，name[0] == null 表示无法识别
-    struct RecognizeResult fe_recognize(void* pInstance, const char* imagePath)
+    RecognizeResultResponse fe_recognizeSingle(void* pInstance, const char* imagePath)
     {
+        assert(pInstance != NULL);
+        assert(imagePath != NULL);
+
         auto instance = static_cast<Instance*>(pInstance);
-
-        printf("\nrecognizing %s...\n", imagePath);
+        auto& faceEngine = instance->m_faceEngine;
+        auto& settings = instance->m_setting;
+        auto& dbProxy = instance->m_dbProxy;
+        auto& recognizer = instance->m_recognizer;
         
-        RecognizeResult ret;
-        /* 测试
-        ret.code = 1111;
+        printf("\nrecognizing face: %s...\n", imagePath);
         
-        memset(&ret.name[0], 0, sizeof(ret.name));
-        ret.name[0] = 'a';
-        ret.name[1] = 'b';
-        ret.name[2] = 'c';
-        ret.name[3] = '\0';
+        const std::string nv21Root = "./nv21.tmp.dir";
 
-        ret.confidenceLevel = 345.678f;
-        */
-
-        return ret;
+        MHandle& handle = faceEngine.GetHandle();
+        std::list<fem::MyFaceInfo*> faceInfoList;
+        fem::DetectFaces(handle, NULL, imagePath, faceInfoList);
+        
+        return doRecognizeFaces(recognizer, handle, faceInfoList);
     }
+
+    // 识别图片
+    // @param imagePathRoot 待识别的图片地址
+    // @return 识别结果，name[0] == null 表示无法识别
+    RecognizeResultResponse fe_recognizeBatch(void* pInstance, const char* imagePathRoot)
+    {
+        assert(pInstance != NULL);
+        assert(imagePathRoot != NULL);
+
+        auto instance = static_cast<Instance*>(pInstance);
+        auto& faceEngine = instance->m_faceEngine;
+        auto& settings = instance->m_setting;
+        auto& dbProxy = instance->m_dbProxy;
+        auto& recognizer = instance->m_recognizer;
+        
+        printf("\nrecognizing face: %s...\n", imagePathRoot);
+        
+        const std::string nv21Root = "./nv21.tmp.dir";
+
+        MHandle& handle = faceEngine.GetHandle();
+        std::list<fem::MyFaceInfo*> faceInfoList;
+        fem::DetectFaces(handle, imagePathRoot, NULL, faceInfoList);
+        
+        return doRecognizeFaces(recognizer, handle, faceInfoList);
+    }
+
+    // 释放检测结果
+    void fe_releaseRecognizeResult(RecognizeResultResponse what)
+    {
+        if(what.elems != NULL){
+            delete[] what.elems;
+            what.elems = NULL;
+        }
+    }
+
 }

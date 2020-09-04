@@ -18,32 +18,33 @@ namespace fem
     {
         // 获取目录下的所有jpg文件
         std::list<std::string> imagePathList;
-        const std::string suffix = "png";
-
-        if(rootPath != NULL){
-            fem::utils::getFilePathsInDirectory(rootPath, suffix, imagePathList);
-        }else{
-            assert(singlePath != NULL);
-            imagePathList.push_back(singlePath);
-        }
-
-        // 对每个jpg进行nv21转码
-        for(const std::string& imagePath : imagePathList){
-
-            // 将jpg改为nv21
-            std::string imageName = fem::utils::getFileName(imagePath);
-            std::string nv21Path = targetPath + "/";
-            nv21Path.append(imageName.substr(0, imageName.length()-suffix.length()));
-            nv21Path.append("nv21");
-
-            fem::utils::opencvRGB2NV21(imagePath, targetWidth, targetHeight, nv21Path);
-
-            // 进行文件返回
-            if(outImagePathList != NULL){
-                outImagePathList->push_back(imagePath);
+        const std::list<std::string> suffixList = {"png", "jpg"};
+        for(const std::string& suffix : suffixList){
+            if(rootPath != NULL){
+                fem::utils::getFilePathsInDirectory(rootPath, suffix, imagePathList);
+            }else{
+                assert(singlePath != NULL);
+                imagePathList.push_back(singlePath);
             }
-            if(outNV21PathList != NULL){
-                outNV21PathList->push_back(nv21Path);
+
+            // 对每个jpg进行nv21转码
+            for(const std::string& imagePath : imagePathList){
+
+                // 将jpg改为nv21
+                std::string imageName = fem::utils::getFileName(imagePath);
+                std::string nv21Path = targetPath + "/";
+                nv21Path.append(imageName.substr(0, imageName.length()-suffix.length()));
+                nv21Path.append("nv21");
+
+                fem::utils::opencvRGB2NV21(imagePath, targetWidth, targetHeight, nv21Path);
+
+                // 进行文件返回
+                if(outImagePathList != NULL){
+                    outImagePathList->push_back(imagePath);
+                }
+                if(outNV21PathList != NULL){
+                    outNV21PathList->push_back(nv21Path);
+                }
             }
         }
     }

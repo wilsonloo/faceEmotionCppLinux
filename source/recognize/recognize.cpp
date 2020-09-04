@@ -26,9 +26,6 @@ using namespace std;
 #define NSCALE 16 
 #define FACENUM	5
 
-nlohmann::json g_setting;
-DBProxy g_dbProxy;
-
 Recognize::~Recognize()
 {
     for(auto iter = m_persons.begin(); iter != m_persons.end(); ++iter){
@@ -42,7 +39,7 @@ Recognize::~Recognize()
 // 在全部脸谱
 void Recognize::LoadAllFaces(DBProxy& dbProxy)
 {
-    g_dbProxy.LoadAllFaces(m_persons);
+    dbProxy.LoadAllFaces(m_persons);
 }
 
 Recognize::SimularType Recognize::SearchSimular(MHandle& handle, ASF_FaceFeature& feature)
@@ -75,6 +72,9 @@ Recognize::SimularType Recognize::SearchSimular(MHandle& handle, ASF_FaceFeature
 
     return Recognize::SimularType(maxLevel, maxPersonInfo); 
 }
+
+nlohmann::json g_setting;
+DBProxy g_dbProxy;
 
 int main()
 {

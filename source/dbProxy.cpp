@@ -20,7 +20,7 @@ bool DBProxy::Init(const std::string& dbPath)
         sqlite3_close(m_db);
         return false;
     }
-    printf("Opening database %s...OK\n", m_dbPath.c_str());
+    printf("Opening database %s... OK\n", m_dbPath.c_str());
 
     // 检测对应数据库，数据表是否存在
     if(!fixTableFace()){
