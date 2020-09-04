@@ -14,12 +14,13 @@ namespace fem
             const int targetWidth, 
             const int targetHeight,
             /*out*/std::list<std::string>* outImagePathList = NULL, 
-            /*out*/std::list<std::string>* outNV21PathList = NULL)
+           /*out*/std::list<std::string>* outNV21PathList = NULL)
     {
         // 获取目录下的所有jpg文件
-        std::list<std::string> imagePathList;
         const std::list<std::string> suffixList = {"png", "jpg"};
+        
         for(const std::string& suffix : suffixList){
+            std::list<std::string> imagePathList;
             if(rootPath != NULL){
                 fem::utils::getFilePathsInDirectory(rootPath, suffix, imagePathList);
             }else{
