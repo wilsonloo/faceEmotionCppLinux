@@ -19,33 +19,46 @@ namespace fem
         // 获取目录下的所有jpg文件
         const std::list<std::string> suffixList = {"png", "jpg"};
         
-        for(const std::string& suffix : suffixList){
-            std::list<std::string> imagePathList;
-            if(rootPath != NULL){
-                fem::utils::getFilePathsInDirectory(rootPath, suffix, imagePathList);
-            }else{
-                assert(singlePath != NULL);
-                imagePathList.push_back(singlePath);
+        // 预处理图片列表
+        std::list<std::string> imagePathList;
+
+        // 预处理单张图片
+        if(singlePath != NULL)
+        {
+            auto fileType = fem::utils::getFileType(singlePath);
+            for(const std::string& suffix : suffixList){
+                if(fileType == suffix){
+                    imagePathList.push_back(singlePath);
+                    break; 
+                } 
             }
+        }
 
-            // 对每个jpg进行nv21转码
-            for(const std::string& imagePath : imagePathList){
+        // 预处理目录里的所有文件
+        if(rootPath != NULL){
+            for(const std::string& suffix : suffixList){
+                fem::utils::getFilePathsInDirectory(rootPath, suffix, imagePathList);
+            }
+        }
 
-                // 将jpg改为nv21
-                std::string imageName = fem::utils::getFileName(imagePath);
-                std::string nv21Path = targetPath + "/";
-                nv21Path.append(imageName.substr(0, imageName.length()-suffix.length()));
-                nv21Path.append("nv21");
+        // 对每个jpg进行nv21转码
+        for(const std::string& imagePath : imagePathList){
+            // 将jpg改为nv21
+            auto imageName = fem::utils::getFileName(imagePath);
+            auto imageType = fem::utils::getFileType(imagePath);
 
-                fem::utils::opencvRGB2NV21(imagePath, targetWidth, targetHeight, nv21Path);
+            auto nv21Path = targetPath + "/";
+            nv21Path.append(imageName.substr(0, imageName.length()-imageType.length()));
+            nv21Path.append("nv21");
 
-                // 进行文件返回
-                if(outImagePathList != NULL){
-                    outImagePathList->push_back(imagePath);
-                }
-                if(outNV21PathList != NULL){
-                    outNV21PathList->push_back(nv21Path);
-                }
+            fem::utils::opencvRGB2NV21(imagePath, targetWidth, targetHeight, nv21Path);
+
+            // 进行文件返回
+            if(outImagePathList != NULL){
+                outImagePathList->push_back(imagePath);
+            }
+            if(outNV21PathList != NULL){
+                outNV21PathList->push_back(nv21Path);
             }
         }
     }
@@ -130,11 +143,11 @@ namespace fem
         const std::string nv21Root = "./nv21.tmp.dir";
 
         // 将jpg图片转成nv21 文件
-        printf("convering rgb iamge to nv21 files in %s...\n", nv21Root.c_str());
+        printf("convering RGB iamge to nv21 files in %s...\n", nv21Root.c_str());
         std::list<std::string> imagePathList;
         std::list<std::string> nv21PathList;
         ConvertRGB2NV21Images(imageRootPath, imageSinglePath, nv21Root, WIDTH, HEIGHT, &imagePathList, &nv21PathList);
-        printf("convering Done\n");
+        printf("convering [%d] images Done\n", imagePathList.size());
 
         // 对每个nv21文件进行人脸检测
         auto nv21PathIter = nv21PathList.begin();

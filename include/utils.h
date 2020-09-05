@@ -211,6 +211,18 @@ namespace fem
             return std::string(fileFullName);
         }
 
+        // 获取文件类型
+        static std::string getFileType(const std::string& fileFullName)
+        {
+            const size_t last_slash_index = fileFullName.rfind('.');
+            if(std::string::npos != last_slash_index){
+                return fileFullName.substr(last_slash_index+1);
+            } 
+
+            return std::string(fileFullName);
+        }
+
+
         // 遍历目录下的指定类型文件
         static void getFilePathsInDirectory(const std::string& path, const std::string& suffix, std::list<std::string>& list)
         {

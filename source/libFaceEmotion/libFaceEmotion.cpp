@@ -97,13 +97,16 @@ extern "C"
         faceEngine.DumpActivationInfos(const_cast<char*>(appId.c_str()), const_cast<char*>(sdkKey.c_str()), NULL);
 
         // 初始化脸谱数据库
-        bool ok = dbProxy.Init(settings["db_path"]);
-        if(!ok){
-            exit(1);
-        }
+        const std::string dbPath(settings["db_path"]);
+        if(!dbPath.empty()){
+            bool ok = dbProxy.Init(dbPath);
+            if(!ok){
+                exit(1);
+            }
 
-        // 加载已有脸谱
-        recognizer.LoadAllFaces(dbProxy);
+            // 加载已有脸谱
+            recognizer.LoadAllFaces(dbProxy);
+        }
 
         return instance;
     }
@@ -126,8 +129,35 @@ extern "C"
         instance->m_faceEngine.DumpSDKInfos();
     }
 
-    RegisterResultResponse doRegisterFaces(DBProxy& dbProxy, const std::list<fem::MyFaceInfo*>& faceInfoList)
+    // ////////////////////////////////////////////////////////////////
+    // 注册脸谱
+    // @param imagePathRoot 待识别的图片地址
+    // @return int 新注册的脸谱个数
+    RegisterResultResponse fe_register(void* pInstance, 
+            const char* imagePathRoot, 
+            const char* imagePath)
     {
+        assert(pInstance != NULL);
+        assert(imagePathRoot != NULL || imagePath != NULL);
+
+        auto instance = static_cast<Instance*>(pInstance);
+        auto& faceEngine = instance->m_faceEngine;
+        auto& settings = instance->m_setting;
+        auto& dbProxy = instance->m_dbProxy;
+        auto& recognizer = instance->m_recognizer;
+        
+        printf("\n");
+        printf("registering face ");
+        if(imagePathRoot != NULL){printf("    in path: %s\n", imagePathRoot);}
+        if(imagePath != NULL){printf("    for %s\n", imagePath);}
+        printf("....\n");
+
+        const std::string nv21Root = "./nv21.tmp.dir";
+
+        MHandle& handle = faceEngine.GetHandle();
+        std::list<fem::MyFaceInfo*> faceInfoList;
+        fem::DetectFaces(handle, imagePathRoot, imagePath, faceInfoList);
+        
         // 注册结果
         RegisterResultResponse response;
         response.count = 0;
@@ -173,57 +203,6 @@ extern "C"
        return response;
     }
 
-    // 注册单张脸谱
-    // @param imagePath 待识别的图片地址
-    RegisterResultResponse fe_registerSingle(void* pInstance, const char* imagePath)
-    {
-        assert(pInstance != NULL);
-        assert(imagePath != NULL);
-
-        auto instance = static_cast<Instance*>(pInstance);
-        auto& faceEngine = instance->m_faceEngine;
-        auto& settings = instance->m_setting;
-        auto& dbProxy = instance->m_dbProxy;
-        auto& recognizer = instance->m_recognizer;
-        
-        printf("\nregistering face: %s...\n", imagePath);
-        
-        const std::string nv21Root = "./nv21.tmp.dir";
-
-        MHandle& handle = faceEngine.GetHandle();
-        std::list<fem::MyFaceInfo*> faceInfoList;
-        fem::DetectFaces(handle, NULL, imagePath, faceInfoList);
-
-        return doRegisterFaces(dbProxy, faceInfoList);
-    }
-
-    // 注册脸谱
-    // @param imagePathRoot 待识别的图片地址
-    // @return int 新注册的脸谱个数
-    RegisterResultResponse fe_registerBatch(void* pInstance, const char* imagePathRoot)
-    {
-        assert(pInstance != NULL);
-        assert(imagePathRoot != NULL);
-
-        auto instance = static_cast<Instance*>(pInstance);
-        auto& faceEngine = instance->m_faceEngine;
-        auto& settings = instance->m_setting;
-        auto& dbProxy = instance->m_dbProxy;
-        auto& recognizer = instance->m_recognizer;
-        
-        int count = 0;
-
-        printf("\nregistering faces in path: %s...\n", imagePathRoot);
- 
-        const std::string nv21Root = "./nv21.tmp.dir";
-
-        MHandle& handle = faceEngine.GetHandle();
-        std::list<fem::MyFaceInfo*> faceInfoList;
-        fem::DetectFaces(handle, imagePathRoot, NULL, faceInfoList);
-        
-        return doRegisterFaces(dbProxy, faceInfoList);
-    }
-
     // 释放注册结果
     void fe_releaseRegisterResult(RegisterResultResponse what)
     {
@@ -233,9 +212,33 @@ extern "C"
         }
     }
 
+    // ///////////////////////////////////////////////////////////////////
     // 进行实际的识别分类
-    RecognizeResultResponse doRecognizeFaces(Recognize& recognizer, MHandle& handle, const std::list<fem::MyFaceInfo*>& faceInfoList)
+    RecognizeResultResponse fe_recognize(void* pInstance, 
+            const char* imagePathRoot, 
+            const char* imagePath)
     {
+        assert(pInstance != NULL);
+        assert(imagePathRoot != NULL || imagePath != NULL);
+
+        auto instance = static_cast<Instance*>(pInstance);
+        auto& faceEngine = instance->m_faceEngine;
+        auto& settings = instance->m_setting;
+        auto& dbProxy = instance->m_dbProxy;
+        auto& recognizer = instance->m_recognizer;
+        
+        printf("\n");
+        printf("recognizing face ");
+        if(imagePathRoot != NULL){printf("    in path: %s\n", imagePathRoot);}
+        if(imagePath != NULL){printf("    for %s\n", imagePath);}
+        printf("....\n");
+
+        const std::string nv21Root = "./nv21.tmp.dir";
+
+        MHandle& handle = faceEngine.GetHandle();
+        std::list<fem::MyFaceInfo*> faceInfoList;
+        fem::DetectFaces(handle, imagePathRoot, imagePath, faceInfoList);
+        
         RecognizeResultResponse response;
         response.count = 0;
         response.elems = NULL;
@@ -294,35 +297,20 @@ extern "C"
        return response;
     }
 
-    // 识别图片
-    // @param imagePath 待识别的图片地址
-    // @return 识别结果，name[0] == null 表示无法识别
-    RecognizeResultResponse fe_recognizeSingle(void* pInstance, const char* imagePath)
+    // 释放识别结果
+    void fe_releaseRecognizeResult(RecognizeResultResponse what)
     {
-        assert(pInstance != NULL);
-        assert(imagePath != NULL);
-
-        auto instance = static_cast<Instance*>(pInstance);
-        auto& faceEngine = instance->m_faceEngine;
-        auto& settings = instance->m_setting;
-        auto& dbProxy = instance->m_dbProxy;
-        auto& recognizer = instance->m_recognizer;
-        
-        printf("\nrecognizing face: %s...\n", imagePath);
-        
-        const std::string nv21Root = "./nv21.tmp.dir";
-
-        MHandle& handle = faceEngine.GetHandle();
-        std::list<fem::MyFaceInfo*> faceInfoList;
-        fem::DetectFaces(handle, NULL, imagePath, faceInfoList);
-        
-        return doRecognizeFaces(recognizer, handle, faceInfoList);
+        if(what.elems != NULL){
+            delete[] what.elems;
+            what.elems = NULL;
+        }
     }
 
-    // 识别图片
+    // 识别脸谱
     // @param imagePathRoot 待识别的图片地址
-    // @return 识别结果，name[0] == null 表示无法识别
-    RecognizeResultResponse fe_recognizeBatch(void* pInstance, const char* imagePathRoot)
+    // @return int 新注册的脸谱个数
+    /* todo 
+    DetectResultResponse fe_detectBatch(void* pInstance, const char* imagePathRoot)
     {
         assert(pInstance != NULL);
         assert(imagePathRoot != NULL);
@@ -333,24 +321,15 @@ extern "C"
         auto& dbProxy = instance->m_dbProxy;
         auto& recognizer = instance->m_recognizer;
         
-        printf("\nrecognizing face: %s...\n", imagePathRoot);
-        
+        int count = 0;
+
+        printf("\nregistering faces in path: %s...\n", imagePathRoot);
+ 
         const std::string nv21Root = "./nv21.tmp.dir";
 
         MHandle& handle = faceEngine.GetHandle();
         std::list<fem::MyFaceInfo*> faceInfoList;
         fem::DetectFaces(handle, imagePathRoot, NULL, faceInfoList);
-        
-        return doRecognizeFaces(recognizer, handle, faceInfoList);
-    }
-
-    // 释放检测结果
-    void fe_releaseRecognizeResult(RecognizeResultResponse what)
-    {
-        if(what.elems != NULL){
-            delete[] what.elems;
-            what.elems = NULL;
-        }
-    }
-
+    } 
+    */
 }

@@ -32,34 +32,29 @@ def recognize(instance, targetPath):
         os.makedirs('./nv21.tmp.dir')
 
     # 根据对象是单文件还是路径，进行区分注册
-    isTargetDir = False
+    targetDirPath = None
+    targetImagePath = None
     if os.path.isdir(targetPath):
-        isTargetDir = True
-        #print("注册目录：", targetPath)
+        targetDirPath = bytes(targetPath, encoding='utf-8')
     elif os.path.isfile(targetPath):
-        isTargetDir = False
-        #print("注册图片：", targetPath)
+        targetImagePath = bytes(targetPath, encoding='utf-8')
     else:
         print(targetPath, ": is a special file(socket,FIFO,device file)")
         sys.exit(1)
 
     fe = instance["fe"]
+    handle = instance["handle"]
     
     # 获取版本信息
     getFaceEmotionVersion = fe.fe_dumpInfos
-    getFaceEmotionVersion(instance["handle"])
+    getFaceEmotionVersion(handle)
 
-    if isTargetDir:
-        # 目录识别
-        recognizeBatch = fe.fe_recognizeBatch
-        recognizeBatch.restype = (RecognizeResultResponse)
-        return recognizeBatch(instance["handle"], bytes(targetPath, encoding='utf-8'))
-    else:
-        # 单张图片注册
-        recognizeSingle = fe.fe_recognizeSingle
-        recognizeSingle.restype = (RecognizeResultResponse)
-        return recognizeSingle(instance["handle"], bytes(targetPath, encoding='utf-8'))
-    
+    # 获取c++的识别函数
+    recognizeFunc = fe.fe_recognize
+    recognizeFunc.restype = (RecognizeResultResponse)
+    return recognizeFunc(handle, targetDirPath, targetImagePath)
+
+# ###############################################################
 # 释放注册结果    
 def releaseRecognizeResponse(instance, response):
     fe = cdll.LoadLibrary("libfaceEmotion.so")
