@@ -76,6 +76,28 @@ extern "C"
         RecognizeResult* elems;
     };
 
+    // /////////////////////////////////////////////////////////
+    // 脸部抽取结果
+    struct FaceExtractResult
+    {
+        // 识别到的图片名字
+        char name[100];   
+
+        // 图片完整路径
+        char imagePath[1024];
+
+        int left;
+        int top;
+        int right;
+        int bottom;
+    };
+    struct FaceExtractResultResponse
+    {
+        int count;
+        FaceExtractResult* elems;
+    };
+
+
     void* fe_init()
     {
         Instance* instance = new Instance();
@@ -306,30 +328,81 @@ extern "C"
         }
     }
 
-    // 识别脸谱
+    // ////////////////////////////////////////////////////////////////
+    // 抽取脸部
     // @param imagePathRoot 待识别的图片地址
-    // @return int 新注册的脸谱个数
-    /* todo 
-    DetectResultResponse fe_detectBatch(void* pInstance, const char* imagePathRoot)
+    FaceExtractResultResponse fe_extractFace(void* pInstance, 
+            const char* imagePathRoot, 
+            const char* imagePath)
     {
         assert(pInstance != NULL);
-        assert(imagePathRoot != NULL);
+        assert(imagePathRoot != NULL || imagePath != NULL);
 
         auto instance = static_cast<Instance*>(pInstance);
         auto& faceEngine = instance->m_faceEngine;
         auto& settings = instance->m_setting;
-        auto& dbProxy = instance->m_dbProxy;
         auto& recognizer = instance->m_recognizer;
         
-        int count = 0;
+        printf("\n");
+        printf("[C]extrac and save face ");
+        if(imagePathRoot != NULL){printf("    in path: %s\n", imagePathRoot);}
+        if(imagePath != NULL){printf("    for %s\n", imagePath);}
+        printf("....\n");
 
-        printf("\nregistering faces in path: %s...\n", imagePathRoot);
- 
         const std::string nv21Root = "./nv21.tmp.dir";
 
         MHandle& handle = faceEngine.GetHandle();
         std::list<fem::MyFaceInfo*> faceInfoList;
-        fem::DetectFaces(handle, imagePathRoot, NULL, faceInfoList);
-    } 
-    */
+        fem::DetectFaces(handle, imagePathRoot, imagePath, faceInfoList);
+         
+        FaceExtractResultResponse response;
+        response.count = 0;
+        response.elems = NULL;
+
+        if(faceInfoList.empty()){
+            printf("[C]extract 0 faces...Done\n");
+            return response;
+        }
+
+        response.count = faceInfoList.size();
+        response.elems = new FaceExtractResult[response.count];
+
+        int k = 0;
+        for(auto iter = faceInfoList.begin(); iter != faceInfoList.end(); ++iter, ++k){
+            const std::string& faceName = (*iter)->faceName;
+            const std::string& imPath = (*iter)->imagePath;
+            const auto& asfFaceInfo = (*iter)->faceInfo;
+  
+            // 识别结果
+            auto& ret = response.elems[k];
+
+            // 拷贝图片名字
+            memset(&ret.name[0], 0, sizeof(ret.name));
+            strncpy(&ret.name[0], faceName.c_str(), sizeof(ret.name));
+            ret.name[sizeof(ret.name)-1] = '\0';
+
+            // 拷贝原始图片路径
+            memset(&ret.imagePath[0], 0, sizeof(ret.imagePath));
+            strncpy(&ret.imagePath[0], imPath.c_str(), sizeof(ret.imagePath));
+            ret.imagePath[sizeof(ret.imagePath)-1] = '\0';
+
+            // 人脸框框
+            ret.left = asfFaceInfo.faceRect.left;
+            ret.top = asfFaceInfo.faceRect.top;
+            ret.right = asfFaceInfo.faceRect.right;
+            ret.bottom = asfFaceInfo.faceRect.bottom;
+       }
+
+       printf("[C]extract %d faces...Done", faceInfoList.size());
+       return response;
+    }
+
+    // 释放抽取结果
+    void fe_releaseFaceExtractResult(FaceExtractResultResponse what)
+    {
+        if(what.elems != NULL){
+            delete[] what.elems;
+            what.elems = NULL;
+        }
+    }
 }
