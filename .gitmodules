@@ -1,3 +1,7 @@
 [submodule "3rd/nlohmann_json"]
 	path = 3rd/nlohmann_json
 	url = git@github.com:wilsonloo/json.git
+
+[submodule "3rd/opencv"]
+    path = 3rd/opencv
+    url = git@github.com:wilsonloo/opencv.git
