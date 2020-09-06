@@ -4,6 +4,11 @@
   1、opencv.3.4.6
     *考虑到对应so比较大，不再将对应include和lib拷贝或者独立创建git
     *安装方式：https://docs.opencv.org/3.4.6/d7/d9f/tutorial_linux_install.html
+    *如果是单独clone，则采用 git clone -b 分支 XXXXXX 方式
+  2、sqlite3
+    *自行安装到系统
+    *修改本项目的CMakelist.txt 包含目录
+    
 
 ## 2020-09-03<br>
   总结：<br>

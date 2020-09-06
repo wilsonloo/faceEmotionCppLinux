@@ -22,9 +22,15 @@ add_subdirectory(./3rd/nlohmann_json)
 #指定头文件目录
 include_directories(./)	
 include_directories(./include)
+include_directories(/usr/local/sqlite3/include)
 
 #指定静态和动态文件目录
 link_directories(./lib)
+link_directories(/usr/local/lib)
+link_directories(/usr/local/sqlite3/lib)
+
+SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/)
+SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
 
 #
 # 人脸注册相关 *************************************************************
@@ -58,13 +64,10 @@ target_link_libraries(register
 
 # 发布
 add_custom_command(TARGET register POST_BUILD
-            COMMAND cp register ${CMAKE_CURRENT_BINARY_DIR}/../bin
-            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
-            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face_engine.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
-            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libsqlite3.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
-            COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/../bin/nv21.tmp.dir
+            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face.so ${EXECUTABLE_OUTPUT_PATH}
+            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face_engine.so ${EXECUTABLE_OUTPUT_PATH}
+            COMMAND mkdir -p ${EXECUTABLE_OUTPUT_PATH}/nv21.tmp.dir
         )
-
 
 #
 # 人脸识别相关 *************************************************************
@@ -97,17 +100,14 @@ target_link_libraries(recognize
 
 # 发布
 add_custom_command(TARGET recognize POST_BUILD
-            COMMAND cp recognize ${CMAKE_CURRENT_BINARY_DIR}/../bin
-            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
-            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face_engine.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
-            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libsqlite3.so ${CMAKE_CURRENT_BINARY_DIR}/../bin
-            COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/../bin/nv21.tmp.dir
+            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face.so ${EXECUTABLE_OUTPUT_PATH}
+            COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/lib/libarcsoft_face_engine.so ${EXECUTABLE_OUTPUT_PATH}
+            COMMAND mkdir -p ${EXECUTABLE_OUTPUT_PATH}/nv21.tmp.dir
         )
 
 #
 # 人脸识别so相关 *************************************************************
 # 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
 ADD_LIBRARY(faceEmotion SHARED 
     ./include/amcomdef.h
     ./include/arcsoft_face_sdk.h
@@ -131,4 +131,6 @@ target_link_libraries(faceEmotion
         sqlite3
         )
 
-
+add_custom_command(TARGET faceEmotion POST_BUILD
+            COMMAND cp ${LIBRARY_OUTPUT_PATH}/libfaceEmotion.so ${EXECUTABLE_OUTPUT_PATH}
+        )
