@@ -8,6 +8,7 @@
   2、sqlite3
     *自行安装到系统
     *修改本项目的CMakelist.txt 包含目录
+  3、tensorflow.2.3
     
 
 ## 2020-09-03<br>
