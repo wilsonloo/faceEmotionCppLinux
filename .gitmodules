@@ -5,3 +5,4 @@
 [submodule "3rd/opencv"]
     path = 3rd/opencv
     url = git@github.com:wilsonloo/opencv.git
+    branch = 3.4
