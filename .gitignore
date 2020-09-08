@@ -7,4 +7,5 @@ lib/libfaceEmotion.so
 pythonUsage/nv21.tmp.dir/
 pythonUsage/.ipynb_checkpoints/
 pythonUsage/__pycache__/
+pythonUsage/logs/
 3rd/opencv
