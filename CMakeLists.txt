@@ -23,11 +23,13 @@ add_subdirectory(./3rd/nlohmann_json)
 include_directories(./)	
 include_directories(./include)
 include_directories(/usr/local/sqlite3/include)
+include_directories(/usr/local/opencv/include)
 
 #指定静态和动态文件目录
 link_directories(./lib)
 link_directories(/usr/local/lib)
 link_directories(/usr/local/sqlite3/lib)
+link_directories(/usr/local/opencv/lib)
 
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/)
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)

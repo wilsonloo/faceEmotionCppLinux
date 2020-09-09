@@ -8,4 +8,5 @@ pythonUsage/nv21.tmp.dir/
 pythonUsage/.ipynb_checkpoints/
 pythonUsage/__pycache__/
 pythonUsage/logs/
+pythonUsage/ArcFace64.dat
 3rd/opencv
