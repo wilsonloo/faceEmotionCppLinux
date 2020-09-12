@@ -9,4 +9,5 @@ pythonUsage/.ipynb_checkpoints/
 pythonUsage/__pycache__/
 pythonUsage/logs/
 pythonUsage/ArcFace64.dat
+pythonUsage/checkpoints/
 3rd/opencv
