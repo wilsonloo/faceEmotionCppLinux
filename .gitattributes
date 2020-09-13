@@ -1,3 +1,6 @@
 res/rawFaceEmotionImages.zip filter=lfs diff=lfs merge=lfs -text
 pythonUsage/emotion.model.mobilenetV2_x75_1.00_20200913 filter=lfs diff=lfs merge=lfs -text
 pythonUsage/emotion.model/saved_model.pb filter=lfs diff=lfs merge=lfs -text
+pythonUsage/detect_register_recognize_who.ipynb filter=lfs diff=lfs merge=lfs -text
+pythonUsage/prepare_train_faces.ipynb filter=lfs diff=lfs merge=lfs -text
+pythonUsage/train_emotions.ipynb filter=lfs diff=lfs merge=lfs -text
