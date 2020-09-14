@@ -65,11 +65,8 @@ def req_classify_emotion():
         binaryFlag = request.args.get('binary')
         toDecode = False
         imageBinary = request.get_data() 
-        print("###### 1", type(imageBinary))
-        
         image = cv2.imdecode(np.frombuffer(imageBinary, dtype=np.uint8), cv2.IMREAD_COLOR)
-        print("$$$$$$ 2", type(image))
-
+        
         category, confidence = classify_image(model, image, toDecode)
         label = label_names[category]
         print(label, confidence)
